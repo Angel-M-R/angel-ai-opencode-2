@@ -862,9 +862,9 @@ func TestExtrasViewShowsNonUninstallNotice(t *testing.T) {
 func TestCMUXSelectionDefaultsAndExplicitSelection(t *testing.T) {
 	model := New(nil, assetfs.Directory(t.TempDir()), t.TempDir())
 	for index, extra := range model.extras {
-		if extra.Key == "cmux" {
+		if extra.Key == "cmux" || extra.Key == "engram-plugin" || extra.Key == "sdd-engram" {
 			if model.extraSelected[index] {
-				t.Fatal("cmux must start unselected")
+				t.Fatalf("optional integration %s must start unselected", extra.Key)
 			}
 			continue
 		}

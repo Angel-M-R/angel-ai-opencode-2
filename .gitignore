@@ -4,3 +4,4 @@
 .DS_Store
 .atl
 .vscode
+node_modules/

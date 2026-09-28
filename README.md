@@ -1,31 +1,33 @@
-> [!CAUTION]
-> This project is designed for OpenCode 1 and is not compatible with OpenCode 2.
+# Angel AI for OpenCode 2
 
+This repository migrates Angel AI to **OpenCode 2.0.18**. It started from
+[`angel-ai-opencode` main at `5a82759`](https://github.com/Angel-M-R/angel-ai-opencode/commit/5a827596e3be77d5a7187d4f30f366ea26ede1b1).
+The original repository remains the OpenCode 1 version.
 
-![Angel AI OpenCode interface](docs/images/angel-ai-opencode-interface.png)
+Angel AI branding and MCP status use the official home footer. OpenCode 2
+keeps its own central logo. Open in App, OpenSpec progress, subagent monitoring
+and SDD profiles use native v2 plugins.
 
-## Installation
+## Migrate an existing installation
 
-The initial distribution supports macOS on Apple Silicon (`Darwin/arm64`) and
-Linux (`linux-amd64`, `linux-arm64`). It does not require Go or cloning this
-repository. Install the latest stable version with:
-
-```sh
-curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/Angel-M-R/angel-ai-opencode/main/install.sh | /bin/sh
-```
-
-The installer verifies the download and places the executable in
-`~/.local/bin/angel-ai`. On Linux it needs `curl` and `python3`; on macOS it
-uses the built-in `plutil`.
+Open OpenCode 2 once so it converts `tui.json` to `cli.json`, then close the TUI.
+From this checkout, preview and apply the plugin migration:
 
 ```sh
-angel-ai                       # opens the interactive wizard
-angel-ai version               # shows the installed version without network access
-angel-ai update                # forces an update check
-angel-ai doctor                # checks the saved bundle and managed files
-angel-ai sync --dry-run        # previews an update using the saved selection
-angel-ai sync                  # updates that selection from the current bundle
+go run ./cmd/migrate-v2
+go run ./cmd/migrate-v2 --apply
+opencode reload
+opencode
 ```
+
+The migration backs up changed files and preserves agent prompts, model choices,
+MCP definitions and permissions. See the [migration and recovery guide](docs/opencode-v2-migration.md)
+for backup, authentication and verification commands.
+
+There is no published v2 Angel AI release yet. Use this checkout; the updater
+now targets this repository and will not fetch an OpenCode 1 bundle.
+For a fresh installation, `go run .` opens the installer wizard. Go is required
+for these source commands; Bun is required only for plugin development tests.
 
 ## Harness design comparison
 
@@ -57,7 +59,7 @@ Angel AI creates or updates the selected files under `~/.config/opencode/`.
 When a managed file already exists and its contents change, the installer first
 creates a timestamped backup. Agent, skill, theme, and plugin assets are updated
 file by file, so files not managed by Angel AI remain untouched. `AGENTS.md` is
-the only full replacement; `opencode.json` and `tui.json` are merged with the
+the only full replacement; `opencode.json` and `cli.json` are merged with the
 existing configuration.
 
 After a successful installation, Angel AI writes
@@ -109,13 +111,15 @@ The last wizard step offers standalone integrations and UI toggles.
 - **[Angel AI logo](assets/tui-plugins/)**: custom ASCII logo plus MCP status
   in the TUI footer.
 - **[one-dark-pro theme](assets/themes/one-dark-pro.json)**: sets one-dark-pro
-  as the TUI theme (`tui.json`).
+  as the TUI theme (`cli.json`).
 - **[Subagent statusline](https://github.com/Joaquinvesapa/sub-agent-statusline)**:
-  third-party npm plugin showing worker activity in the sidebar.
-- **[Open in App](https://github.com/Angel-M-R/opencode-open-in-app)**: npm
+  vendored v2 plugin showing worker activity in the sidebar.
+- **[Open in App](https://github.com/Angel-M-R/opencode-open-in-app)**: local v2
   plugin that opens files and resources in their native applications.
 - **[OpenSpec task TUI](https://github.com/Angel-M-R/opencode-openspec-task-tui)**:
-  npm plugin showing OpenSpec task progress in the sidebar.
+  local v2 plugin showing OpenSpec task progress in the sidebar.
+- **SDD profiles and Engram hooks**: optional native v2 adapters. Engram hooks
+  retain the installed Engram 1.20 HTTP contract.
 - **[cmux](https://cmux.com)**: cmux notifications and Feed for OpenCode
   sessions.
 

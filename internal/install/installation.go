@@ -21,6 +21,7 @@ import (
 // and applying consume the same request so they cannot disagree about extras or
 // about files shared by more than one feature, such as AGENTS.md.
 type InstallationRequest struct {
+	migrateV2 bool
 	Items     []catalog.Item
 	Extras    map[string]bool
 	Assets    assets.Source
@@ -271,10 +272,25 @@ func prepareInstallation(request InstallationRequest) (preparedInstallation, err
 	if err != nil {
 		return preparedInstallation{}, err
 	}
+	if request.migrateV2 {
+		opencodeFile, ok, err = prepareJSONObjectCore(filepath.Join(request.ConfigDir, "opencode.json"),
+			"https://opencode.ai/config.json", nil, pluginIdentity,
+			func(config map[string]any) error { return migrateV2ServerConfig(request.ConfigDir, config) }, false)
+		if err != nil {
+			return preparedInstallation{}, err
+		}
+	}
 	if ok {
 		prepared.files = append(prepared.files, opencodeFile)
 	}
 
+	if request.Extras["engram-plugin"] {
+		file, err := prepareSourceFile(request.Assets, "integrations/engram/engram.ts", filepath.Join(request.ConfigDir, "plugins", "engram.ts"), false)
+		if err != nil {
+			return preparedInstallation{}, err
+		}
+		prepared.files = append(prepared.files, file)
+	}
 	if err := prepareCMUXExtra(&prepared, request); err != nil {
 		return preparedInstallation{}, err
 	}
@@ -547,46 +563,34 @@ func cloneJSONObject(source map[string]any) (map[string]any, error) {
 	return cloned, nil
 }
 
+// prepareUIExtras installs local v2 plugin packages. cli.json is the v2 client
+// configuration; tui.json is retained as the user's v1 rollback copy.
 func prepareUIExtras(prepared *preparedInstallation, request InstallationRequest) error {
 	var patches []map[string]any
-	selectedPublishedPlugins := map[string]bool{
-		"opencode-open-in-app":       request.Extras[openInAppOptionKey],
-		"opencode-openspec-task-tui": request.Extras[openSpecTaskTUIOptionKey],
-	}
-	if request.Extras["angel-logo"] {
-		for _, name := range angelLogoFiles {
-			file, err := prepareSourceFile(
-				request.Assets,
-				path.Join("tui-plugins", name),
-				filepath.Join(request.ConfigDir, "tui-plugins", name),
-				false,
-			)
-			if err != nil {
-				return fmt.Errorf("preparing %s: %w", name, err)
-			}
-			prepared.files = append(prepared.files, file)
+	selected := map[string]bool{}
+	for _, plugin := range uiPlugins {
+		if !request.Extras[plugin.option] {
+			continue
 		}
-		patches = append(patches, map[string]any{
-			"plugin": []any{filepath.Join(request.ConfigDir, "tui-plugins", "angel-logo.tsx")},
-		})
+		selected[plugin.identity] = true
+		target := filepath.Join(request.ConfigDir, "tui-plugins", plugin.directory)
+		files, err := prepareDirectory(request.Assets, path.Join("tui-plugins", plugin.directory), target)
+		if err != nil {
+			return fmt.Errorf("preparing %s: %w", plugin.identity, err)
+		}
+		prepared.files = append(prepared.files, files...)
+		patches = append(patches, map[string]any{"plugins": []any{target}})
 	}
 	if request.Extras["theme"] {
-		patches = append(patches, map[string]any{"theme": "one-dark-pro"})
+		patches = append(patches, map[string]any{"theme": map[string]any{"name": "one-dark-pro"}})
 	}
-	if request.Extras["subagent-statusline"] {
-		patches = append(patches, map[string]any{"plugin": []any{"opencode-subagent-statusline"}})
-	}
-	if request.Extras[openInAppOptionKey] {
-		patches = append(patches, map[string]any{"plugin": []any{"opencode-open-in-app"}})
-	}
-	if request.Extras[openSpecTaskTUIOptionKey] {
-		patches = append(patches, map[string]any{"plugin": []any{"opencode-openspec-task-tui"}})
+	if len(patches) == 0 {
+		return nil
 	}
 	file, ok, err := prepareJSONObject(
-		filepath.Join(request.ConfigDir, "tui.json"),
-		"https://opencode.ai/tui.json",
-		patches,
-		selectedTUIPluginIdentityResolver(request.ConfigDir, selectedPublishedPlugins),
+		filepath.Join(request.ConfigDir, "cli.json"),
+		"https://opencode.ai/v2/cli.json", patches,
+		v2UIPluginIdentityResolver(request.ConfigDir, selected),
 	)
 	if err != nil {
 		return err

@@ -30,13 +30,13 @@ func manifestResponse(status int, body string) *http.Response {
 }
 
 func manifestJSON(version string) string {
-	return `{"version":"` + version + `","artifact_url":"https://github.com/Angel-M-R/angel-ai-opencode/releases/download/` + version + `/angel-ai","sha256":"` + validSHA256 + `"}`
+	return `{"version":"` + version + `","artifact_url":"https://github.com/Angel-M-R/angel-ai-opencode-2/releases/download/` + version + `/angel-ai","sha256":"` + validSHA256 + `"}`
 }
 
 func TestValidateManifestRequiresStableVersionHTTPSAndLowercaseSHA256(t *testing.T) {
 	valid := Manifest{
 		Version:     "v1.2.3",
-		ArtifactURL: "https://github.com/Angel-M-R/angel-ai-opencode/releases/download/v1.2.3/angel-ai",
+		ArtifactURL: "https://github.com/Angel-M-R/angel-ai-opencode-2/releases/download/v1.2.3/angel-ai",
 		SHA256:      validSHA256,
 	}
 	if err := ValidateManifest(valid); err != nil {
@@ -156,7 +156,7 @@ func TestCheckRejectsOversizedManifest(t *testing.T) {
 }
 
 func TestManifestRequestUsesDirectURLAndTwoSecondTimeout(t *testing.T) {
-	wantURL := fmt.Sprintf("https://github.com/Angel-M-R/angel-ai-opencode/releases/latest/download/manifest-%s-%s.json", runtime.GOOS, runtime.GOARCH)
+	wantURL := fmt.Sprintf("https://github.com/Angel-M-R/angel-ai-opencode-2/releases/latest/download/manifest-%s-%s.json", runtime.GOOS, runtime.GOARCH)
 	started := time.Now()
 	updater := New(Config{HTTP: httpClientFunc(func(request *http.Request) (*http.Response, error) {
 		if request.URL.String() != wantURL {

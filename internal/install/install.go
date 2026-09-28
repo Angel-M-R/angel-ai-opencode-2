@@ -15,8 +15,9 @@ import (
 type pluginIdentityResolver func(any) string
 
 var tuiPluginLiteralIdentities = map[string]string{
-	"opencode-open-in-app":   "opencode-open-in-app",
-	"openspec-task-progress": "opencode-openspec-task-tui",
+	"opencode-open-in-app":       "opencode-open-in-app",
+	"openspec-task-progress":     "opencode-openspec-task-tui",
+	"opencode-sdd-engram-manage": "opencode-sdd-engram-manage",
 }
 
 type sourceToken struct {
@@ -102,7 +103,7 @@ func mergeWithPluginIdentity(dst, src map[string]any, resolveIdentity pluginIden
 			}
 			if dstArr, ok1 := existing.([]any); ok1 {
 				if srcArr, ok2 := value.([]any); ok2 {
-					if key == "plugin" {
+					if key == "plugin" || key == "plugins" {
 						dst[key] = mergePluginArrayWithIdentity(dstArr, srcArr, resolveIdentity)
 					} else {
 						dst[key] = srcArr
@@ -164,7 +165,14 @@ func pluginIdentity(value any) string {
 		return text
 	}
 	if version := strings.IndexByte(text, '@'); version >= 0 {
-		return text[:version]
+		identity := text[:version]
+		if identity == "opencode-claude-auth" {
+			return "opencode-claude-auth-v2"
+		}
+		return identity
+	}
+	if text == "opencode-claude-auth" {
+		return "opencode-claude-auth-v2"
 	}
 	return text
 }
@@ -375,4 +383,54 @@ func isRelativePluginPath(entry string) bool {
 		strings.HasPrefix(entry, `.\`) ||
 		strings.HasPrefix(entry, `..\`) ||
 		strings.ContainsAny(entry, `/\`)
+}
+
+// Only selected plugins are reconciled; unknown and deselected entries survive.
+func v2UIPluginIdentityResolver(configDir string, selected map[string]bool) pluginIdentityResolver {
+	legacy := tuiPluginIdentityResolver(configDir)
+	return func(value any) string {
+		entry, ok := value.(string)
+		if !ok {
+			return pluginIdentity(value)
+		}
+		identity := legacy(value)
+		for _, plugin := range uiPlugins {
+			if !selected[plugin.identity] {
+				continue
+			}
+			if identity == plugin.identity {
+				return identity
+			}
+			candidate, local := tuiPluginBundlePath(configDir, entry)
+			if local && localPluginPackageName(candidate) == plugin.identity {
+				return plugin.identity
+			}
+			if local && (candidate == filepath.Join(configDir, "tui-plugins", plugin.directory) ||
+				(plugin.identity == "angel-logo" && candidate == filepath.Join(configDir, "tui-plugins", "angel-logo.tsx")) ||
+				(plugin.identity == "opencode-sdd-engram-manage" && candidate == filepath.Join(configDir, "tui-plugins", "sdd-engram-manage.ts"))) {
+				return plugin.identity
+			}
+		}
+		return pluginIdentity(value)
+	}
+}
+
+// Bundled entrypoints often export a computed definition. Read their nearest
+// package manifest instead of executing a plugin or guessing from source text.
+func localPluginPackageName(file string) string {
+	for dir := filepath.Dir(file); ; dir = filepath.Dir(dir) {
+		raw, err := os.ReadFile(filepath.Join(dir, "package.json"))
+		if err == nil {
+			var manifest struct {
+				Name string `json:"name"`
+			}
+			if json.Unmarshal(raw, &manifest) == nil {
+				return manifest.Name
+			}
+			return ""
+		}
+		if !os.IsNotExist(err) || filepath.Dir(dir) == dir {
+			return ""
+		}
+	}
 }
