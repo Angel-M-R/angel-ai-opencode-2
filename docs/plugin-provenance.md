@@ -5,7 +5,7 @@ owned by this migration; they do not automatically track upstream branches.
 
 | Installed component | Source and revision | Local adaptation |
 |---|---|---|
-| Angel logo/MCP | Angel AI assets from base `5a827596e3be77d5a7187d4f30f366ea26ede1b1` | Native home footer, status objects, theme and commands |
+| Angel logo/MCP | Angel AI assets from base `5a827596e3be77d5a7187d4f30f366ea26ede1b1` | Central logo slot on the patched host, official footer fallback, status objects and commands |
 | Open in App | [Angel-M-R/opencode-open-in-app](https://github.com/Angel-M-R/opencode-open-in-app) `6569d529fe030cb82a2f344fa358b8575c76be99` | Native plugin, sidebar, dialog and preference store |
 | OpenSpec tasks | [Angel-M-R/opencode-openspec-task-tui](https://github.com/Angel-M-R/opencode-openspec-task-tui) `b0bb42a62a24c2178da5c44d1531c8ff72e06591` | Native plugin, session location, theme and storage adapters |
 | Subagent monitor | [Alanhiram75/sub-agent-statusline](https://github.com/Alanhiram75/sub-agent-statusline/tree/a585b0923a0c1382bba69c14f78d733eee6a3d44) | Pinned v2 port; local import layout |
@@ -24,3 +24,8 @@ with future OpenCode releases.
 
 The newer Engram v2.2 adapter investigated in the research report was not adopted:
 it requires HTTP/database features absent from the installed Engram 1.20 binary.
+
+The optional OpenCode executable uses upstream commit
+`cd9a14a6b688d4021bee381dfd39d2cef9c0f862` plus
+[`opencode-2.0.18-home-logo.patch`](../patches/opencode-2.0.18-home-logo.patch).
+The upstream [MIT license](../patches/OPENCODE-LICENSE) is retained.

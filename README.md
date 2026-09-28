@@ -4,9 +4,11 @@ This repository migrates Angel AI to **OpenCode 2.0.18**. It started from
 [`angel-ai-opencode` main at `5a82759`](https://github.com/Angel-M-R/angel-ai-opencode/commit/5a827596e3be77d5a7187d4f30f366ea26ede1b1).
 The original repository remains the OpenCode 1 version.
 
-Angel AI branding and MCP status use the official home footer. OpenCode 2
-keeps its own central logo. Open in App, OpenSpec progress, subagent monitoring
-and SDD profiles use native v2 plugins.
+The [Angel home build](docs/angel-home-build.md) restores the v1 layout: the blue
+Angel AI logo and MCP table appear above the prompt, replacing the official logo.
+It applies a small, pinned patch to OpenCode 2.0.18. Stock OpenCode remains
+supported through a footer fallback. Open in App, OpenSpec progress, subagent
+monitoring and SDD profiles use native v2 plugins.
 
 ## Migrate an existing installation
 

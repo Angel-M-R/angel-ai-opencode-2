@@ -1,8 +1,9 @@
 # Migrate Angel AI to OpenCode 2.0.18
 
 This migration ports the installed UI and server plugins to v2 while preserving
-user configuration. The branding and MCP panel use `home.footer`; v2 has no
-public slot that replaces its central logo. See the [API research](research/opencode-v2-migration.md)
+user configuration. The [Angel home build](angel-home-build.md) adds the missing
+`home.logo` slot to restore the v1 layout above the prompt. On official OpenCode,
+the same plugin falls back to `home.footer`. See the [API research](research/opencode-v2-migration.md)
 for official documentation and source references.
 
 ## Apply from this checkout
@@ -36,7 +37,7 @@ its inventory, especially if agent prompts have local edits.
 | Component | v2 implementation |
 |---|---|
 | TUI configuration | `cli.json`, `plugins` array, theme object |
-| Angel AI and MCP | Native home footer; compact link on short terminals; `/angel-mcps` |
+| Angel AI and MCP | Above the prompt in the Angel build; footer fallback on official OpenCode; `/angel-mcps` |
 | Open in App | Native sidebar and `/open-in-app`, Alt+O |
 | OpenSpec tasks | Native session sidebar, project-specific task progress |
 | Subagent status | Native session family and outcome data |
@@ -94,7 +95,7 @@ servers stay disabled. No migration can substitute for the OAuth approval.
 - CodeGraph, Context7, Chrome DevTools and Engram connected. Notion authorization
   is left to the owner; Railway already required authorization before migration.
 - Go unit tests, twelve installer integration cases, TypeScript checking, and
-  eight Bun tests passed. Tests cover MCP rendering, Engram root-session attribution
+  ten Bun tests passed. Tests cover MCP rendering, Engram root-session attribution
   and redaction, SDD config preservation, OpenSpec parsing and subagent outcomes. OpenSpec sidebar rendering and home command registration
   are exercised through OpenTUI with controlled fixtures.
 - cmux is not available on PATH on this machine: its adapters load but are dormant
@@ -128,3 +129,10 @@ bun run test
 
 Pinned port origins and licenses are recorded in
 [plugin provenance](plugin-provenance.md).
+
+The follow-up home-layout change was also checked in real PTYs at 180×55,
+110×40 and 80×24, with the MCP panel above the prompt and no official logo.
+The official executable reproduces the prior failure with the same test.
+The patched upstream passed `bun run check` across 35 packages and 74 focused
+TUI/plugin tests. The launcher installer/rollback tests cover both a regular
+command file and a relative symlink.

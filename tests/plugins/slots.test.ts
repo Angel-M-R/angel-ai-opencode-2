@@ -58,3 +58,19 @@ test("OpenSpec native sidebar uses the session project and renders fixture progr
     expect(frame).toContain("Pending")
   } finally { rendered.renderer.destroy() }
 })
+
+test("patched hosts replace the central logo without duplicating branding in the footer", async () => {
+  const h = host()
+  Object.assign(h.context, { app: { version: "2.0.18", channel: "latest", angelHomeLogo: true } })
+  await angel.setup(h.context)
+  expect(h.slots.filter(slot => slot.replace === "home.logo")).toHaveLength(1)
+  expect(h.slots.some(slot => slot.before === "home.footer")).toBe(false)
+})
+
+test("official hosts retain the supported footer layout", async () => {
+  const h = host()
+  Object.assign(h.context, { app: { version: "2.0.18", channel: "latest" } })
+  await angel.setup(h.context)
+  expect(h.slots.some(slot => slot.replace === "home.logo")).toBe(false)
+  expect(h.slots.filter(slot => slot.before === "home.footer")).toHaveLength(1)
+})
