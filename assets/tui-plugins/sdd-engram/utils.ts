@@ -1,7 +1,7 @@
 /** @jsxImportSource @opentui/solid */
 /**
  * General Plugin Utilities
- * 
+ *
  * Provides helper functions for text formatting, model information resolution,
  * and profile parsing.
  */
@@ -18,7 +18,7 @@ const FALLBACK_INELIGIBLE_AGENTS = new Set(["sdd-orchestrator", "gentle-orchestr
 
 /**
  * Formats a token count into a human-readable context string
- * 
+ *
  * @param tokens - Number of tokens to format
  * @returns Formatted context string (e.g., "128k ctx", "1M ctx")
  */
@@ -31,7 +31,7 @@ export function formatContext(tokens: number | null): string {
 
 /**
  * Formats a memory timestamp into a localized string
- * 
+ *
  * @param value - ISO date string or undefined
  * @returns Localized date string or "No date" fallback
  */
@@ -44,7 +44,7 @@ export function formatMemoryDate(value: string | undefined): string {
 
 /**
  * Truncates text to a maximum length, adding an ellipsis if necessary
- * 
+ *
  * @param value - Text to truncate
  * @param max - Maximum allowed length (default: 120)
  * @returns Truncated string
@@ -56,7 +56,7 @@ export function truncateText(value: string, max = 120): string {
 
 /**
  * Checks if an agent name follows the managed subagent naming convention
- * 
+ *
  * @param agentName - Name of the agent to check
  * @returns True if the agent name uses a managed prefix
  */
@@ -88,7 +88,7 @@ export function isFallbackEligibleSddAgent(agentName: string): boolean {
 
 /**
  * Resolves full model information including provider and context limit
- * 
+ *
  * @param api - The TUI API instance
  * @param modelId - The unique model identifier
  * @returns Human-readable model information string
@@ -158,7 +158,7 @@ export function resolveSessionActiveModel(api: any, sessionId?: string): ActiveP
   if (!sessionId) return null;
 
   const messages = api.state.session?.messages?.(sessionId) || [];
-  
+
   // 1. Prioritize agent from the last USER message (the orchestrator/entry point)
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
@@ -188,7 +188,7 @@ export function resolveSessionActiveModel(api: any, sessionId?: string): ActiveP
 
 /**
  * Parses the active profile state from raw configuration text
- * 
+ *
  * @param raw - The raw JSON configuration string
  * @param api - The TUI API instance
  * @returns The parsed active profile state or null if invalid

@@ -1,7 +1,7 @@
 /** @jsxImportSource @opentui/solid */
 /**
  * Plugin UI Dialogs
- * 
+ *
  * Contains all interactive dialogs for profile management, model selection,
  * and memory viewing.
  */
@@ -275,7 +275,7 @@ export function buildFallbackSubmenuOptions(profileData: any, sections: any, api
 
 /**
  * Displays a detailed view of a specific memory observation
- * 
+ *
  * @param api - The TUI API instance
  * @param memory - The memory object to display
  */
@@ -357,7 +357,7 @@ function showMemoryDetail(api: any, memory: any) {
 
 /**
  * Displays a confirmation dialog before deleting a memory
- * 
+ *
  * @param api - The TUI API instance
  * @param memory - The memory object to delete
  */
@@ -466,7 +466,7 @@ export function buildProfileVersionListOption(version: ProfileVersionMetadata): 
 
 /**
  * Registers callback functions for cross-dialog navigation
- * 
+ *
  * @param callbacks - Collection of dialog functions
  */
 export function registerDialogCallbacks(callbacks: {
@@ -483,7 +483,7 @@ export function registerDialogCallbacks(callbacks: {
 
 /**
  * Displays the main SDD Profiles management menu
- * 
+ *
  * @param api - The TUI API instance
  */
 export function showProfilesMenu(api: any) {
@@ -549,7 +549,7 @@ export function showProfilesMenu(api: any) {
 
 /**
  * Displays a prompt to create a new profile from the current configuration
- * 
+ *
  * @param api - The TUI API instance
  */
 export function showCreateProfile(api: any) {
@@ -583,9 +583,9 @@ export function showCreateProfile(api: any) {
           }
 
           writeProfileModels(profilePath, {});
-          
-          // Defer both navigation and toast to next tick to ensure the current 
-          // DialogPrompt has fully finished its state cycle, avoiding races 
+
+          // Defer both navigation and toast to next tick to ensure the current
+          // DialogPrompt has fully finished its state cycle, avoiding races
           // that could prevent the new detail view from appearing reliably.
           setTimeout(() => {
             showProfileDetailFn(api, { title: finalName, value: fileName });
@@ -612,7 +612,7 @@ export function showCreateProfile(api: any) {
 
 /**
  * Displays a list of all saved SDD profiles for selection
- * 
+ *
  * @param api - The TUI API instance
  */
 export function showProfileList(api: any) {
@@ -655,7 +655,7 @@ export function showProfileList(api: any) {
 
 /**
  * Displays detailed information and management options for a specific profile
- * 
+ *
  * @param api - The TUI API instance
  * @param profileOpt - Selected profile option containing title and value (filename)
  */
@@ -1284,7 +1284,7 @@ function updateAgentModel(
 
 /**
  * Displays a list of recent memories associated with the current project
- * 
+ *
  * @param api - The TUI API instance
  */
 export async function showProjectMemoriesMenu(api: any) {

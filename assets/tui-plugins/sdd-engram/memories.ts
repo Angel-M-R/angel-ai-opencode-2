@@ -1,8 +1,8 @@
 /** @jsxImportSource @opentui/solid */
 /**
  * Engram Memories Logic
- * 
- * Provides access to the Engram HTTP API server to retrieve 
+ *
+ * Provides access to the Engram HTTP API server to retrieve
  * and manage project-specific observations.
  */
 
@@ -17,7 +17,7 @@ const ENGRAM_URL = `http://127.0.0.1:${ENGRAM_PORT}`;
 
 /**
  * Normalizes a raw database memory row into a typed EngramObservation
- * 
+ *
  * @param memory - Raw memory object from database
  * @param fallbackProject - Project name to use if not present in the record
  * @returns Normalized EngramObservation
@@ -39,7 +39,7 @@ function normalizeMemory(memory: any, fallbackProject: string): EngramObservatio
 
 /**
  * Lists all active memories associated with the current project using the Engram HTTP API
- * 
+ *
  * @param api - The TUI API instance
  * @returns Array of normalized Engram observations
  */
@@ -97,7 +97,7 @@ export async function listProjectMemories(api: any): Promise<EngramObservation[]
 
 /**
  * Soft-deletes a specific project memory by calling the Engram HTTP API
- * 
+ *
  * @param memoryId - Unique ID of the memory to delete
  */
 export async function deleteProjectMemory(memoryId: number): Promise<void> {
