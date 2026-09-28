@@ -1,3 +1,6 @@
+> [!CAUTION]
+> This project is designed for OpenCode 1 and is not compatible with OpenCode 2.
+
 
 ![Angel AI OpenCode interface](docs/images/angel-ai-opencode-interface.png)
 
