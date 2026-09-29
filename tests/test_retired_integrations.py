@@ -131,6 +131,16 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual((backup / 'config' / dependency.relative_to(self.root)).read_text(), 'installed bytes')
         self.assertFalse((backup / 'config/node_modules').exists())
 
+    def test_referenced_patch_inside_dependency_cache_is_restorable(self):
+        artifact = self.write('node_modules/custom/old.patch', 'patch bytes')
+        self.write('package.json', {'patchedDependencies': {'opencode-sdd-engram-manage@1': 'node_modules/custom/old.patch'}})
+        with patch.object(Path, 'write_bytes', side_effect=OSError('manifest failure')):
+            with self.assertRaisesRegex(OSError, 'manifest'):
+                retire.apply(self.root, retire.plan(self.root), self.backups)
+        self.assertEqual(artifact.read_text(), 'patch bytes')
+        self.assertEqual(json.loads((self.root / 'package.json').read_text())['patchedDependencies'],
+                         {'opencode-sdd-engram-manage@1': 'node_modules/custom/old.patch'})
+
     def test_native_descriptors_preserve_options(self):
         kept = {'package': './tui-plugins/open-in-app', 'options': {'favorite': 'code'}}
         self.write('cli.json', {'plugins': [{'package': 'opencode-sdd-engram-manage', 'options': {}}, kept]})

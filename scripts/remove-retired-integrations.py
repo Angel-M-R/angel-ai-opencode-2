@@ -210,11 +210,15 @@ def apply(root, edits, backup_root):
     snapshot = backup / 'config'
     removed_directories = [root / name for name, content in edits.items()
                            if content is None and (root / name).is_dir() and not (root / name).is_symlink()]
+    edited_paths = [root / name for name in edits]
     def ignore_dependencies(directory, names):
         current = Path(directory)
         # Removed directories must be restorable byte-for-byte, including their
         # nested dependencies. Unrelated install caches need not be copied.
         if any(current == removed or removed in current.parents for removed in removed_directories):
+            return []
+        dependency_dir = current / 'node_modules'
+        if any(target == dependency_dir or dependency_dir in target.parents for target in edited_paths):
             return []
         return ['node_modules'] if 'node_modules' in names else []
     shutil.copytree(root, snapshot, symlinks=True, ignore=ignore_dependencies)

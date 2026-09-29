@@ -37,7 +37,8 @@ permissions are preserved. Custom copies of replaced prompts remain in the backu
 
 The command makes a private configuration snapshot before editing. It includes
 nested `node_modules` inside directories being removed, so rollback restores them
-completely, and excludes unrelated dependency caches. Backups are stored
+completely. Caches containing a referenced patch being removed are also included;
+unrelated dependency caches are excluded. Backups are stored
 under `~/.local/state/angel-ai/backups/retired-*`. A write failure
 restores edited paths. Successful repeated runs make no changes or new backups.
 It preserves pre-existing inventory drift instead of silently accepting it;
