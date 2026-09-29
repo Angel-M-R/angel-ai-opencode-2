@@ -13,10 +13,12 @@ const until = async (check: () => boolean) => {
 
 test("cmux bridges native permission contracts, plan rules, labels and cancellation", async () => {
   const root = mkdtempSync(join(tmpdir(), "angel-cmux-")), socket = join(root, "socket")
-  const previous = { socket: process.env.CMUX_SOCKET_PATH, surface: process.env.CMUX_SURFACE_ID }
+  const previous = { socket: process.env.CMUX_SOCKET_PATH, surface: process.env.CMUX_SURFACE_ID, disabled: process.env.CMUX_OPENCODE_HOOKS_DISABLED }
+  delete process.env.CMUX_OPENCODE_HOOKS_DISABLED
   process.env.CMUX_SOCKET_PATH = socket
   process.env.CMUX_SURFACE_ID = "test"
   const frames: any[] = [], permissionReplies: any[] = [], formReplies: any[] = [], updates: any[] = []
+  let cancelledConnection: import("node:net").Socket | undefined
   const server = createServer(connection => {
     let buffer = ""
     connection.on("data", chunk => {
@@ -25,6 +27,7 @@ test("cmux bridges native permission contracts, plan rules, labels and cancellat
         const offset = buffer.indexOf("\n"); if (offset < 0) break
         const frame = JSON.parse(buffer.slice(0, offset)); buffer = buffer.slice(offset + 1)
         frames.push(frame)
+        if (frame.id === "opencode-cancel") cancelledConnection = connection
         if (frame.id === "opencode-permission") connection.write(JSON.stringify({ id: frame.id, result: { status: "resolved", decision: { kind: "permission", mode: "once" } } }) + "\n")
         if (frame.id === "opencode-plan") connection.write(JSON.stringify({ id: frame.id, result: { status: "resolved", decision: { kind: "exit_plan", mode: "manual" } } }) + "\n")
       }
@@ -73,12 +76,15 @@ test("cmux bridges native permission contracts, plan rules, labels and cancellat
     emit("form.cancelled", { id: "cancel", sessionID: "session" })
     emit("session.status", { sessionID: "session", status: { type: "idle" } })
     await until(() => frames.some(frame => frame.params.event.hook_event_name === "Stop"))
+    cancelledConnection?.write(JSON.stringify({ id: "opencode-cancel", result: { status: "resolved", decision: { kind: "question", selections: [["Readable label"]] } } }) + "\n")
+    await new Promise(resolve => setTimeout(resolve, 30))
     expect(formReplies).toHaveLength(1)
   } finally {
     cleanup?.()
     await new Promise<void>(resolve => server.close(() => resolve()))
     if (previous.socket === undefined) delete process.env.CMUX_SOCKET_PATH; else process.env.CMUX_SOCKET_PATH = previous.socket
     if (previous.surface === undefined) delete process.env.CMUX_SURFACE_ID; else process.env.CMUX_SURFACE_ID = previous.surface
+    if (previous.disabled === undefined) delete process.env.CMUX_OPENCODE_HOOKS_DISABLED; else process.env.CMUX_OPENCODE_HOOKS_DISABLED = previous.disabled
     rmSync(root, { recursive: true, force: true })
   }
 })

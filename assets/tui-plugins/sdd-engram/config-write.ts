@@ -11,7 +11,11 @@ export function readGlobalConfigFile(configPath: string): any {
 }
 
 export function writeGlobalConfigFile(configPath: string, config: any): void {
-  if (fs.existsSync(configPath)) configPath = fs.realpathSync(configPath);
+  try {
+    if (fs.existsSync(configPath)) configPath = fs.realpathSync(configPath);
+  } catch (cause) {
+    throw new Error(`Cannot resolve global config ${configPath}; leaving it unchanged`, { cause });
+  }
   const current = readGlobalConfigFile(configPath);
   if (current.agents || config.agents) {
     throw new Error("Native v2 agent config is not supported by this SDD profile format");

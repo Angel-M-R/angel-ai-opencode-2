@@ -198,6 +198,10 @@ func pluginIdentity(value any) string {
 func tuiPluginIdentityResolver(configDir string) pluginIdentityResolver {
 	return func(value any) string {
 		fallback := pluginIdentity(value)
+		// Descriptors identify packages, not arbitrary source-level exported IDs.
+		if _, descriptor := value.(map[string]any); descriptor {
+			return fallback
+		}
 		entry, ok := pluginSpec(value)
 		if !ok {
 			return fallback

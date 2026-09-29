@@ -41,7 +41,7 @@ import { Show } from "solid-js";
 import type { Store } from "solid-js/store";
 import { formatActiveModelBadgeText } from "./components";
 import { createLogger } from "./logger";
-import { ensureProfilesDir, readPluginShortcutBindings, resolveEngramProjectName, resolvePaths, resolveProjectName as resolveConfigProjectName } from "./config";
+import { ensureProfilesDir, readPluginShortcutBindings, resolveEngramProjectName, resolvePaths, resolveProjectCandidates } from "./config";
 import {
 	activateProfileFile,
 	deleteProfileFile,
@@ -1070,12 +1070,14 @@ async function openProjectMemoriesMenu(context: Context): Promise<void> {
 	// `listProjectMemories` resolves project candidates from
 	// `state.path.directory`, so the shim carries the V2 location directory.
 	const shim = { state: { path: { directory: context.location?.directory } } };
-	const projectName = resolveEngramProjectName(shim) || resolveConfigProjectName(shim) || "project";
+	const configuredProject = resolveEngramProjectName(shim);
+	const candidates = configuredProject ? [configuredProject] : await resolveProjectCandidates(shim);
+	const projectName = candidates[0] || "project";
 
 	while (true) {
 		let memories: EngramObservation[];
 		try {
-			memories = await listProjectMemories(shim);
+			memories = await listProjectMemories(shim, candidates);
 		} catch (error: any) {
 			log.warn(`openProjectMemoriesMenu: failed to load memories for ${projectName}`, error);
 			toast(context, { title: "Error", message: `Failed to load memories: ${error?.message || error}`, variant: "error" });

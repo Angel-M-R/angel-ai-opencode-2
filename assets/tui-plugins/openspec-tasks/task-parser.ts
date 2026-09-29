@@ -71,12 +71,26 @@ export function parseTaskDocument(markdown: string): TaskDocument {
 
     let visible = "";
     while (line) {
-      const delimiter = comment ? "-->" : "<!--";
-      const offset = line.indexOf(delimiter);
-      if (offset < 0) { if (!comment) visible += line; break; }
-      if (!comment) visible += line.slice(0, offset);
-      line = line.slice(offset + delimiter.length);
-      comment = !comment;
+      if (comment) {
+        const end = line.indexOf("-->");
+        if (end < 0) break;
+        line = line.slice(end + 3);
+        comment = false;
+        continue;
+      }
+      if (line.startsWith("<!--")) { comment = true; line = line.slice(4); continue; }
+      const ticks = line.match(/^`+/)?.[0];
+      if (ticks) {
+        // Only a matching run closes a Markdown code span. Unmatched ticks
+        // remain literal text, so they cannot hide a real HTML comment.
+        const end = Array.from(line.slice(ticks.length).matchAll(/`+/g))
+          .find(match => match[0].length === ticks.length);
+        if (end) {
+          const length = ticks.length + end.index! + ticks.length;
+          visible += line.slice(0, length); line = line.slice(length); continue;
+        }
+      }
+      visible += line[0]; line = line.slice(1);
     }
     line = visible;
     const fenceMatch = line.match(FENCE_PATTERN);

@@ -1,4 +1,6 @@
 import { execFile } from "node:child_process";
+import { realpathSync, statSync } from "node:fs";
+import { win32 } from "node:path";
 import { Buffer } from "node:buffer";
 
 export const PROCESS_TIMEOUT_MS = 5_000;
@@ -55,13 +57,29 @@ export async function runOpenSpecProcess(
   return result;
 }
 
-export function processCommand(request: ProcessRequest, platform = process.platform): { command: string; args: string[] } {
+export function processCommand(request: ProcessRequest, platform = process.platform, resolveShim = resolveWindowsShim): { command: string; args: string[] } {
   if (platform !== "win32") return { command: request.command, args: [...request.args] };
   // Only the fixed CLI and shell-neutral list/status arguments reach cmd.exe.
   if (request.command !== "openspec" || request.args.some(arg => !/^[A-Za-z0-9_-]+$/.test(arg))) {
     throw new Error("Unsafe OpenSpec Windows arguments");
   }
-  return { command: process.env.ComSpec || "cmd.exe", args: ["/d", "/s", "/c", ["openspec.cmd", ...request.args].join(" ")] };
+  const shim = resolveShim(request.cwd);
+  if (!win32.isAbsolute(shim) || /["%!&|<>^\r\n]/.test(shim)) throw new Error("Unsafe OpenSpec shim path");
+  return { command: process.env.ComSpec || "cmd.exe", args: ["/d", "/s", "/c", `""${shim}" ${request.args.join(" ")}"`] };
+}
+
+function resolveWindowsShim(cwd: string): string {
+  const project = realpathSync(cwd);
+  for (const directory of (process.env.PATH ?? "").split(";")) {
+    if (!win32.isAbsolute(directory)) continue;
+    try {
+      const shim = realpathSync(win32.join(directory, "openspec.cmd"));
+      const relative = win32.relative(project, shim);
+      if (!win32.isAbsolute(relative) && relative !== ".." && !relative.startsWith("..\\")) continue;
+      if (statSync(shim).isFile()) return shim;
+    } catch { /* Try the next absolute PATH directory. */ }
+  }
+  throw new Error("No OpenSpec shim outside the project was found on PATH");
 }
 
 const executeOpenSpecProcess: ProcessExecutor = (request) =>
@@ -76,6 +94,7 @@ const executeOpenSpecProcess: ProcessExecutor = (request) =>
         maxBuffer: request.maxOutputBytes,
         timeout: request.timeoutMs,
         windowsHide: true,
+        windowsVerbatimArguments: process.platform === "win32",
       },
       (error, stdout, stderr) => {
         resolve({

@@ -1,5 +1,5 @@
-import { watch as watchFileSystem, type FSWatcher } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { constants, watch as watchFileSystem, type FSWatcher } from "node:fs";
+import { open, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 
 import type {
@@ -56,7 +56,7 @@ interface WatchSet {
 export function createRefreshCoordinator(
   options: RefreshCoordinatorOptions,
 ): RefreshCoordinator {
-  const readTasks = options.readTaskFile ?? readUtf8File;
+  const readTasks = options.readTaskFile;
   const parseTasks = options.parseTasks ?? parseTaskDocument;
   const createWatcher = options.watch ?? createNodeWatcher;
   const debounceMs = options.debounceMs ?? DEFAULT_REFRESH_DEBOUNCE_MS;
@@ -193,7 +193,9 @@ export function createRefreshCoordinator(
 
     let markdown: string;
     try {
-      markdown = await readTasks(resolution.change.taskFilePath);
+      markdown = readTasks
+        ? await readTasks(resolution.change.taskFilePath)
+        : await readContainedTaskFile(resolution.change.taskFilePath, resolution.change.rootPath);
     } catch {
       if (!disposed && version === requestVersion) {
         publishStale("Task file unreadable");
@@ -301,8 +303,27 @@ export function createRefreshCoordinator(
   };
 }
 
-async function readUtf8File(taskFilePath: string): Promise<string> {
-  return readFile(taskFilePath, "utf8");
+export async function readContainedTaskFile(taskFilePath: string, rootPath: string): Promise<string> {
+  const root = await realpath(rootPath);
+  const contained = (resolved: string) => {
+    const relative = path.relative(root, resolved);
+    return relative !== "" && relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+  };
+  const resolved = await realpath(taskFilePath);
+  if (!contained(resolved)) throw new Error("Task file escapes change root");
+  // Open the validated file without following a newly substituted final symlink,
+  // then validate the opened inode before reading through that same descriptor.
+  const file = await open(resolved, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+  try {
+    const current = await realpath(taskFilePath);
+    if (!contained(current)) throw new Error("Task file changed outside change root");
+    const actual = await file.stat();
+    const expected = await stat(current);
+    if (!actual.isFile() || actual.dev !== expected.dev || actual.ino !== expected.ino) {
+      throw new Error("Task file changed during open");
+    }
+    return await file.readFile("utf8");
+  } finally { await file.close(); }
 }
 
 function createNodeWatcher(

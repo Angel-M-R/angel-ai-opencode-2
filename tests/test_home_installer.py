@@ -67,6 +67,8 @@ class HomeInstallerConflictTests(unittest.TestCase):
             second = subprocess.run(args + [str(root / 'two')], capture_output=True)
             self.assertNotEqual(second.returncode, 0)
             self.assertEqual(command.readlink(), target)
+            self.assertTrue(target.is_file())
+            self.assertEqual(subprocess.check_output([str(command)], text=True).strip(), "2.0.18")
             self.assertFalse((root / 'two').exists())
             self.assertEqual(len(list(root.glob('backup-*'))), 1)
 

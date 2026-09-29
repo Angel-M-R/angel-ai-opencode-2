@@ -4,13 +4,17 @@ import { RGBA } from "@opentui/core"
 import { labelFor, resolveTokensTotal } from "../../assets/tui-plugins/subagent-statusline/format"
 import { takeColumns, textColumns, truncateToColumns } from "../../assets/tui-plugins/subagent-statusline/text-width"
 import monitor from "../../assets/tui-plugins/subagent-statusline/tui"
-import open from "../../assets/tui-plugins/open-in-app/tui"
+import { createOpenInAppPlugin } from "../../assets/tui-plugins/open-in-app/tui"
+const open = createOpenInAppPlugin(() => ({ getDetectedApps: async () => [] }))
 import angel from "../../assets/tui-plugins/angel-logo/tui"
 import { defaultProcessExecutor } from "../../assets/tui-plugins/open-in-app/process"
 import { launchApp } from "../../assets/tui-plugins/open-in-app/apps"
 import type { Plugin } from "@opencode/plugin/tui"
 
 test("monitor preserves graphemes, explicit totals and delimited agent tags", () => {
+  expect(textColumns("©︎")).toBe(1)
+  expect(textColumns("1️⃣")).toBe(2)
+  expect(takeColumns("1️⃣x", 1)).toBe("")
   expect(textColumns("👨‍👩‍👧‍👦")).toBe(2)
   expect(takeColumns("👨‍👩‍👧‍👦abc", 2)).toBe("👨‍👩‍👧‍👦")
   expect(truncateToColumns("👨‍👩‍👧‍👦abc", 3)).toBe("👨‍👩‍👧‍👦…")

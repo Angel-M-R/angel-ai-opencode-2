@@ -124,3 +124,16 @@ func TestV2MigrationRecognizesPackageDirectory(t *testing.T) {
 		t.Fatal("directory package not selected for migration")
 	}
 }
+
+func TestV2MigrationPreservesCustomDescriptorWithMatchingExportedID(t *testing.T) {
+	target, custom := t.TempDir(), t.TempDir()
+	entry := filepath.Join(custom, "custom.tsx")
+	writeTestFile(t, entry, `export default { id: "opencode-open-in-app", setup() {} }`)
+	descriptor := map[string]any{"package": entry, "options": map[string]any{"custom": true}}
+	resolver := v2UIPluginIdentityResolver(target, map[string]bool{"opencode-open-in-app": true})
+	desired := filepath.Join(target, "tui-plugins", "open-in-app")
+	got := mergePluginArrayWithIdentity([]any{descriptor}, []any{desired}, resolver)
+	if !reflect.DeepEqual(got, []any{descriptor, desired}) {
+		t.Fatalf("custom descriptor was replaced: %#v", got)
+	}
+}
