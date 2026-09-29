@@ -48,9 +48,6 @@ func V2MigrationRequest(source assets.Source, configDir string) (InstallationReq
 			return request, err
 		}
 	}
-	if _, err := os.Stat(filepath.Join(configDir, "plugins", "engram.ts")); err == nil {
-		request.Extras["engram-plugin"] = true
-	}
 	return request, nil
 }
 
@@ -96,7 +93,7 @@ func migrateV2ServerConfig(configDir string, config map[string]any) error {
 			file, local := tuiPluginBundlePath(configDir, name)
 			// These files are auto-discovered. V2 rejects explicit file references.
 			if local && (file == filepath.Join(configDir, "plugins", "cmux-session.js") ||
-				file == filepath.Join(configDir, "plugins", "cmux-feed.js") || file == filepath.Join(configDir, "plugins", "engram.ts")) {
+				file == filepath.Join(configDir, "plugins", "cmux-feed.js")) {
 				continue
 			}
 			if strings.TrimSpace(name) != "" {

@@ -49,10 +49,10 @@ In any case, if the retained context is poor, incomplete, or stale, it can misle
 
 | Angel AI | Gentle AI | Oh My Pi | gstack | ECC | Superpowers | BMAD Method | Oh My OpenAgent |
 |---|---|---|---|---|---|---|---|
-| Official OpenSpec | Custom SDD with Engram, OpenSpec, or both | Custom system | `/spec`: 5 phases, quality gate, and archive | Plans and guides; no dedicated spec lifecycle | Approved design + detailed implementation plan | PRD, architecture, stories, readiness, and validation | [Interviewed Markdown plans in `.omo/plans` + boulder-tracked execution](https://github.com/code-yeongyu/oh-my-openagent/blob/32d5a4e31746cf936e238ef31ea2cea53d5f02ac/docs/guide/orchestration.md#start-work-behavior-and-session-continuity) |
+| Direct workers from a confirmed Brief | Custom SDD with Engram, OpenSpec, or both | Custom system | `/spec`: 5 phases, quality gate, and archive | Plans and guides; no dedicated spec lifecycle | Approved design + detailed implementation plan | PRD, architecture, stories, readiness, and validation | [Interviewed Markdown plans in `.omo/plans` + boulder-tracked execution](https://github.com/code-yeongyu/oh-my-openagent/blob/32d5a4e31746cf936e238ef31ea2cea53d5f02ac/docs/guide/orchestration.md#start-work-behavior-and-session-continuity) |
 
 I have been working with specs since January when the Ralph loop became popular. I have tried multiple tools like OpenSpec, Spec Kit, BMAD, GSD, and skills to generate ADRs or PRDs.<br/>
-I actually have official OpenSpec in this project but I'm planning to move to custom skills because I see a lot of unnecessary token spending on those spec frameworks.
+OpenCode 2 now uses a confirmed Brief and direct workers; the bundled spec workflow has been removed.
 
 
 ## Token savings and models

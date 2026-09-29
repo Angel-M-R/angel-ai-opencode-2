@@ -110,8 +110,8 @@ func TestApplyUsesKeySpecificArrayMergeRules(t *testing.T) {
 	write(t, filepath.Join(assets, "fragments", "settings.json"), `{
   "plugin": ["managed-plugin@latest"],
   "mcp": {
-    "codegraph": {
-      "command": ["codegraph", "serve", "--mcp"],
+    "example-mcp": {
+      "command": ["example-mcp", "serve", "--mcp"],
       "enabled": true,
       "type": "local"
     }
@@ -127,8 +127,8 @@ func TestApplyUsesKeySpecificArrayMergeRules(t *testing.T) {
 	write(t, configPath, `{
   "plugin": ["foreign-plugin", "managed-plugin@1.0.0"],
   "mcp": {
-    "codegraph": {
-      "command": ["old-codegraph", "serve"],
+    "example-mcp": {
+      "command": ["old-example-mcp", "serve"],
       "enabled": false,
       "type": "local"
     }
@@ -154,8 +154,8 @@ func TestApplyUsesKeySpecificArrayMergeRules(t *testing.T) {
 			t.Fatalf("plugins = %v, want %v", plugins, wantPlugins)
 		}
 	}
-	command := config["mcp"].(map[string]any)["codegraph"].(map[string]any)["command"].([]any)
-	wantCommand := []string{"codegraph", "serve", "--mcp"}
+	command := config["mcp"].(map[string]any)["example-mcp"].(map[string]any)["command"].([]any)
+	wantCommand := []string{"example-mcp", "serve", "--mcp"}
 	if len(command) != len(wantCommand) {
 		t.Fatalf("command = %v, want %v", command, wantCommand)
 	}
@@ -264,8 +264,8 @@ func TestApplyMigratesPublishedTUIPlugins(t *testing.T) {
 	tuiPath := filepath.Join(target, "cli.json")
 	absoluteOpenInApp := filepath.Join(t.TempDir(), "open-in-app.js")
 	relativeOpenInApp := filepath.Join("plugins", "open-in-app-relative.js")
-	relativeOpenSpecTask := filepath.Join("plugins", "openspec-task-relative.js")
-	fileOpenSpecTask := "file:plugins/openspec-task-file.js"
+	relativeSecondOpenInApp := filepath.Join("plugins", "open-in-app-second.js")
+	fileOpenInApp := "file:plugins/open-in-app-file.js"
 	unrecognized := filepath.Join("plugins", "unrecognized.js")
 	commentDecoy := filepath.Join("plugins", "comment-decoy.js")
 	stringDecoy := filepath.Join("plugins", "string-decoy.js")
@@ -273,8 +273,8 @@ func TestApplyMigratesPublishedTUIPlugins(t *testing.T) {
 
 	write(t, absoluteOpenInApp, `export default { id: "opencode-open-in-app" }`)
 	write(t, filepath.Join(target, relativeOpenInApp), `export default { id: "opencode-open-in-app" }`)
-	write(t, filepath.Join(target, relativeOpenSpecTask), `export default { id: "openspec-task-progress" }`)
-	write(t, filepath.Join(target, "plugins", "openspec-task-file.js"), `export default { id: "openspec-task-progress" }`)
+	write(t, filepath.Join(target, relativeSecondOpenInApp), `export default { id: "opencode-open-in-app" }`)
+	write(t, filepath.Join(target, "plugins", "open-in-app-file.js"), `export default { id: "opencode-open-in-app" }`)
 	write(t, filepath.Join(target, unrecognized), `export default { id: "unrelated-local-plugin" }`)
 	write(t, filepath.Join(target, commentDecoy), `// export default { id: "opencode-open-in-app" }
 export default {}`)
@@ -315,16 +315,16 @@ export default {}`)
 		nestedDecoy,
 		relativeOpenInApp,
 		"unrelated-middle",
-		relativeOpenSpecTask,
-		fileOpenSpecTask,
+		relativeSecondOpenInApp,
+		fileOpenInApp,
 		"opencode-open-in-app@1.2.3",
-		"opencode-openspec-task-tui@2.3.4",
+		"opencode-subagent-statusline@2.3.4",
 		"unrelated-after",
 	})
 	if _, err := install.ApplyInstallation(install.InstallationRequest{
 		Extras: map[string]bool{
-			"opencode-open-in-app":       true,
-			"opencode-openspec-task-tui": true,
+			"opencode-open-in-app": true,
+			"subagent-statusline":  true,
 		},
 		Assets:    assetfs.Directory(assets),
 		ConfigDir: target,
@@ -339,7 +339,7 @@ export default {}`)
 		stringDecoy,
 		nestedDecoy,
 		"unrelated-middle",
-		filepath.Join(target, "tui-plugins", "openspec-tasks"),
+		filepath.Join(target, "tui-plugins", "subagent-statusline"),
 		"unrelated-after",
 	}
 	if got := readPlugins(); !reflect.DeepEqual(got, wantMigrated) {
@@ -350,23 +350,23 @@ export default {}`)
 		absoluteOpenInApp,
 		"opencode-open-in-app@9.9.9",
 		"opencode-open-in-app@8.8.8",
-		relativeOpenSpecTask,
-		fileOpenSpecTask,
+		relativeSecondOpenInApp,
+		fileOpenInApp,
 		"unrelated-after",
 	}
 	writePlugins(deselectedPlugins)
 	if _, err := install.ApplyInstallation(install.InstallationRequest{
 		Extras: map[string]bool{
-			"opencode-open-in-app":       false,
-			"opencode-openspec-task-tui": false,
-			"subagent-statusline":        true,
+			"opencode-open-in-app": false,
+			"subagent-statusline":  false,
+			"angel-logo":           true,
 		},
 		Assets:    assetfs.Directory(assets),
 		ConfigDir: target,
 	}); err != nil {
 		t.Fatal(err)
 	}
-	wantDeselected := append(append([]string(nil), deselectedPlugins...), filepath.Join(target, "tui-plugins", "subagent-statusline"))
+	wantDeselected := append(append([]string(nil), deselectedPlugins...), filepath.Join(target, "tui-plugins", "angel-logo"))
 	if got := readPlugins(); !reflect.DeepEqual(got, wantDeselected) {
 		t.Fatalf("TUI plugins with published extras deselected = %v, want %v", got, wantDeselected)
 	}
@@ -485,7 +485,7 @@ func TestLoadAndApply(t *testing.T) {
 
 	target := t.TempDir()
 	// Existing config: merge must keep unknown keys and union arrays.
-	write(t, filepath.Join(target, "opencode.json"), `{"share":"disabled","plugin":["a","b"],"mcp":{"engram":{"type":"local"}}}`)
+	write(t, filepath.Join(target, "opencode.json"), `{"share":"disabled","plugin":["a","b"],"mcp":{"custom-memory":{"type":"local"}}}`)
 
 	var items []catalog.Item
 	for _, category := range categories {
@@ -517,8 +517,8 @@ func TestLoadAndApply(t *testing.T) {
 		t.Error("merge dropped existing share key")
 	}
 	mcp := config["mcp"].(map[string]any)
-	if _, ok := mcp["engram"]; !ok {
-		t.Error("merge dropped existing mcp.engram")
+	if _, ok := mcp["custom-memory"]; !ok {
+		t.Error("merge dropped existing mcp.custom-memory")
 	}
 	if _, ok := mcp["context7"]; !ok {
 		t.Error("merge did not add mcp.context7")
@@ -544,7 +544,7 @@ func TestLoadAndApply(t *testing.T) {
 func uiFixtureAssets(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
-	for _, name := range []string{"angel-logo", "subagent-statusline", "open-in-app", "openspec-tasks"} {
+	for _, name := range []string{"angel-logo", "subagent-statusline", "open-in-app"} {
 		write(t, filepath.Join(root, "tui-plugins", name, "tui.tsx"), "export default {}\n")
 	}
 	return root

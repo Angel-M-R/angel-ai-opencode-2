@@ -3,12 +3,9 @@ package install
 import "fmt"
 
 const (
-	codegraphOptionKey       = "codegraph"
-	openSpecOptionKey        = "openspec"
-	tsgoOptionKey            = "tsgo"
-	cmuxOptionKey            = "cmux"
-	openInAppOptionKey       = "opencode-open-in-app"
-	openSpecTaskTUIOptionKey = "opencode-openspec-task-tui"
+	tsgoOptionKey      = "tsgo"
+	cmuxOptionKey      = "cmux"
+	openInAppOptionKey = "opencode-open-in-app"
 )
 
 // ExtraOption is a standalone integration or UI toggle applied at the end of
@@ -24,20 +21,6 @@ type ExtraOption struct {
 // catalog, these are hardcoded because each one requires behavior that plain
 // file scanning cannot express.
 var ExtraOptions = []ExtraOption{
-	{Key: "engram-plugin", Label: "Engram memory hooks", Description: "Adaptador OpenCode v2 para Engram 1.20 existente"},
-	{Key: "sdd-engram", Label: "SDD profiles and memories", Description: "Gestor de perfiles y memorias adaptado a OpenCode v2"},
-	{
-		Key:             codegraphOptionKey,
-		Label:           "CodeGraph",
-		Description:     "Instala el CLI, registra el MCP local y añade sus reglas a AGENTS.md",
-		DefaultSelected: true,
-	},
-	{
-		Key:             openSpecOptionKey,
-		Label:           "OpenSpec",
-		Description:     "Instala o actualiza el CLI global de OpenSpec",
-		DefaultSelected: true,
-	},
 	{
 		Key:             tsgoOptionKey,
 		Label:           "tsgo",
@@ -47,7 +30,7 @@ var ExtraOptions = []ExtraOption{
 	{
 		Key:             "angel-logo",
 		Label:           "Logo Angel AI",
-		Description:     "ASCII logo propio + estado de los MCP en el pie de la TUI v2",
+		Description:     "ASCII logo propio + estado de los MCP sobre la entrada en la compilación Angel",
 		DefaultSelected: true,
 	},
 	{
@@ -69,12 +52,6 @@ var ExtraOptions = []ExtraOption{
 		DefaultSelected: true,
 	},
 	{
-		Key:             openSpecTaskTUIOptionKey,
-		Label:           "OpenSpec task TUI",
-		Description:     "Plugin v2: muestra el progreso de tareas de OpenSpec en la sidebar",
-		DefaultSelected: true,
-	},
-	{
 		Key:             cmuxOptionKey,
 		Label:           "cmux",
 		Description:     "Notificaciones y Feed de cmux para sesiones de OpenCode",
@@ -84,10 +61,8 @@ var ExtraOptions = []ExtraOption{
 
 var uiPlugins = []struct{ option, identity, directory string }{
 	{"angel-logo", "angel-logo", "angel-logo"},
-	{"sdd-engram", "opencode-sdd-engram-manage", "sdd-engram"},
 	{"subagent-statusline", "opencode-subagent-statusline", "subagent-statusline"},
 	{openInAppOptionKey, "opencode-open-in-app", "open-in-app"},
-	{openSpecTaskTUIOptionKey, "opencode-openspec-task-tui", "openspec-tasks"},
 }
 var cmuxPluginFiles = []string{"cmux-session.js", "cmux-feed.js"}
 

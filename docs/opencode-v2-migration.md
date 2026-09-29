@@ -39,10 +39,7 @@ its inventory, especially if agent prompts have local edits.
 | TUI configuration | `cli.json`, `plugins` array, theme object |
 | Angel AI and MCP | Above the prompt in the Angel build; footer fallback on official OpenCode; `/angel-mcps` |
 | Open in App | Native sidebar and `/open-in-app`, Alt+O |
-| OpenSpec tasks | Native session sidebar, project-specific task progress |
 | Subagent status | Native session family and outcome data |
-| SDD/Engram menu | `/sdd-model`, native dialogs and storage; hide empty model badge |
-| Engram hooks | Native server events/hooks adapted to Engram 1.20 HTTP |
 | Claude authentication | Pinned `opencode-claude-auth-v2@0.4.0-beta.5` |
 | cmux | Native event adapters; use `opencode --standalone` inside cmux |
 
@@ -51,11 +48,10 @@ TUI plugins are installed as directories, so OpenCode can resolve the native
 UI plugins to the server's `opencode.json` plugin list. Server hooks under
 `plugins/` are auto-discovered and should not also be configured explicitly.
 
-SDD profiles still use legacy `agent` JSON configuration, which OpenCode 2.0.18
-accepts. Activation preserves file references, backs up the configuration and
-writes atomically. Invalid JSON/JSONC and native `agents` configurations fail
-closed; convert/review those before using profile activation. v1 preference
-storage is not generally readable through the v2 API; UI preferences may reset.
+After the native plugin migration, run the separate
+[retired-integration cleanup](retired-integrations.md). It removes the v1
+workflows and selected MCP connections; the migration above deliberately
+preserves existing configuration until that explicit cleanup step.
 
 ## Verify
 
@@ -65,8 +61,7 @@ opencode api get /api/plugin
 opencode mcp list
 ```
 
-Open `/plugins` in the TUI and check for failures. Check `/open-in-app` and
-`/sdd-model`, then open a session with an OpenSpec change and delegated workers.
+Open `/plugins` in the TUI and check for failures. Check `/open-in-app`, then open a session with delegated workers.
 A short terminal deliberately uses a compact Angel AI footer to keep the prompt
 visible. Enlarge the terminal to see the full MCP table.
 
@@ -76,33 +71,13 @@ Claude Code credentials already on the machine can be imported with:
 opencode auth login anthropic --method claude-code
 ```
 
-Reconnect MCP services when requested by v2:
+## Previous migration verification
 
-```sh
-opencode mcp auth notion
-opencode mcp auth railway
-```
-
-These commands require the account owner's browser authorization. Disabled MCP
-servers stay disabled. No migration can substitute for the OAuth approval.
-
-## Verification performed on this Mac
-
-- OpenCode 2.0.18 loaded all five TUI plugins and the four external server plugins.
-- Angel-Orchestrator completed a real Claude request (`ANGEL_V2_OK`) and a real
-  General Agent delegation (`ANGEL_DELEGATION_OK`). The subagent footer updated
-  from running to completed.
-- CodeGraph, Context7, Chrome DevTools and Engram connected. Notion authorization
-  is left to the owner; Railway already required authorization before migration.
-- Go unit tests, twelve installer integration cases, TypeScript checking, and
-  ten Bun tests passed. Tests cover MCP rendering, Engram root-session attribution
-  and redaction, SDD config preservation, OpenSpec parsing and subagent outcomes. OpenSpec sidebar rendering and home command registration
-  are exercised through OpenTUI with controlled fixtures.
-- cmux is not available on PATH on this machine: its adapters load but are dormant
-  outside cmux. A live cmux Feed/restore check remains necessary on a cmux host.
-- Open in App and SDD management menus were opened successfully in the live TUI.
-- SDD profile activation is covered with temporary config files; the user's
-  actual profiles and memories were not changed or deleted for testing.
+Before the cleanup, this Mac passed a real Claude request and General Agent
+delegation, native plugin loading, and PTY checks of the restored home layout.
+Those results describe the parent migration. See the cleanup guide for the
+remaining integration set and its checks. cmux is absent on this machine, so
+its hooks load but a live Feed/restore check still requires a cmux host.
 
 ## Recovery
 

@@ -7,8 +7,8 @@ The original repository remains the OpenCode 1 version.
 The [Angel home build](docs/angel-home-build.md) restores the v1 layout: the blue
 Angel AI logo and MCP table appear above the prompt, replacing the official logo.
 It applies a small, pinned patch to OpenCode 2.0.18. Stock OpenCode remains
-supported through a footer fallback. Open in App, OpenSpec progress, subagent
-monitoring and SDD profiles use native v2 plugins.
+supported through a footer fallback. Open in App and subagent monitoring use
+native v2 plugins. The orchestrator delegates implementation directly to workers.
 
 ## Migrate an existing installation
 
@@ -18,12 +18,16 @@ From this checkout, preview and apply the plugin migration:
 ```sh
 go run ./cmd/migrate-v2
 go run ./cmd/migrate-v2 --apply
+python3 scripts/remove-retired-integrations.py
+python3 scripts/remove-retired-integrations.py --apply
 opencode reload
 opencode
 ```
 
 The migration backs up changed files and preserves agent prompts, model choices,
-MCP definitions and permissions. See the [migration and recovery guide](docs/opencode-v2-migration.md)
+MCP definitions and permissions. The separate cleanup command retires Engram,
+SDD, OpenSpec, Notion, Supabase, Railway and CodeGraph, with a private backup.
+See [cleanup and recovery](docs/retired-integrations.md) and the [migration and recovery guide](docs/opencode-v2-migration.md)
 for backup, authentication and verification commands.
 
 There is no published v2 Angel AI release yet. Use this checkout; the updater
@@ -47,13 +51,18 @@ agent-models step configures this per-agent selection.
 
 The [`angel-orchestrator`](assets/agents/angel-orchestrator.md) agent is a thin
 coordinator: it interviews the user, builds a confirmed Brief, routes the work
-through Direct workers or the OpenSpec workflow, and closes with an optional
+through `general` workers, and closes with an optional
 review gate.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/orchestrator-workflow-dark.svg">
-  <img alt="Orchestrator workflow: a user prompt is triaged; trivial changes take the quick lane, everything else goes through the interview gate, is routed to Direct workers or the OpenSpec agents, and both routes close at the review gate." src="docs/diagrams/orchestrator-workflow.svg" width="1416">
-</picture>
+```mermaid
+flowchart LR
+  Request --> Trivial{Trivial?}
+  Trivial -->|Yes| Inline[Quick lane]
+  Trivial -->|No| Interview[Interview and confirmed Brief]
+  Interview --> Workers[Bounded general workers]
+  Workers --> Validation[Integrated validation]
+  Validation --> Review[Optional selected reviewers]
+```
 
 ## What it does
 
@@ -92,36 +101,28 @@ and rerun the installer.
 | **Agents config** | |
 | `~/.config/opencode/agents/*.md` | Selected [agent definitions](assets/agents/) are created or replaced. Each file contains YAML frontmatter and a system prompt. |
 | `~/.config/opencode/skills/<skill>/**` | Selected [skills](assets/skills/) are updated recursively. Additional files already present in the destination are preserved. |
-| `~/.config/opencode/AGENTS.md` | The existing file is fully replaced with the [global Angel AI rules](assets/agents-md/AGENTS.md), plus the [CodeGraph guidance](assets/integrations/codegraph/AGENTS.md) when selected. |
+| `~/.config/opencode/AGENTS.md` | The existing file is fully replaced with the [global Angel AI rules](assets/agents-md/AGENTS.md). |
 | **TUI config** | |
 | `~/.config/opencode/plugins/cmux-*.js` | The [cmux session and feed plugins](assets/integrations/cmux/) are created or replaced when the cmux integration is selected. |
 | `~/.config/opencode/themes/*.json` | Selected [themes](assets/themes/) are created or replaced. |
 | `~/.config/opencode/tui-plugins/*` | The selected [Angel AI TUI plugins](assets/tui-plugins/) are created or replaced. |
-| `~/.config/opencode/opencode.json` | The [MCP](assets/fragments/mcp.json), [permission](assets/fragments/permissions.json), and [settings](assets/fragments/settings.json) fragments are deep-merged into the existing configuration. Selected agent models, CodeGraph, and tsgo settings are also reconciled without removing unrelated keys. |
+| `~/.config/opencode/opencode.json` | The [MCP](assets/fragments/mcp.json), [permission](assets/fragments/permissions.json), and [settings](assets/fragments/settings.json) fragments are deep-merged into the existing configuration. Selected agent models and tsgo settings are also reconciled without removing unrelated keys. |
 | `~/.config/opencode/.angel-ai-state.json` | The versioned selection and file inventory used by `doctor` and `sync`. The state file is written atomically with mode `0600`. |
 
 ## Extras
 
 The last wizard step offers standalone integrations and UI toggles.
 
-- **[CodeGraph](https://github.com/colbymchenry/codegraph)**: installs the
-  CLI, registers the local MCP server, and appends its guidance to `AGENTS.md`.
-- **[OpenSpec](https://github.com/Fission-AI/OpenSpec)**: installs or updates
-  the official OpenSpec CLI.
 - **[tsgo](https://github.com/microsoft/typescript-go)**: installs or updates
   tsgo and configures it as the TypeScript LSP.
 - **[Angel AI logo](assets/tui-plugins/)**: custom ASCII logo plus MCP status
-  in the TUI footer.
+  above the prompt in the Angel build, with a footer fallback on stock OpenCode.
 - **[one-dark-pro theme](assets/themes/one-dark-pro.json)**: sets one-dark-pro
   as the TUI theme (`cli.json`).
 - **[Subagent statusline](https://github.com/Joaquinvesapa/sub-agent-statusline)**:
   vendored v2 plugin showing worker activity in the sidebar.
 - **[Open in App](https://github.com/Angel-M-R/opencode-open-in-app)**: local v2
   plugin that opens files and resources in their native applications.
-- **[OpenSpec task TUI](https://github.com/Angel-M-R/opencode-openspec-task-tui)**:
-  local v2 plugin showing OpenSpec task progress in the sidebar.
-- **SDD profiles and Engram hooks**: optional native v2 adapters. Engram hooks
-  retain the installed Engram 1.20 HTTP contract.
 - **[cmux](https://cmux.com)**: cmux notifications and Feed for OpenCode
   sessions.
 

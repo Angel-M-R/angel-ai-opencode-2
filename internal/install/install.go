@@ -15,9 +15,7 @@ import (
 type pluginIdentityResolver func(any) string
 
 var tuiPluginLiteralIdentities = map[string]string{
-	"opencode-open-in-app":       "opencode-open-in-app",
-	"openspec-task-progress":     "opencode-openspec-task-tui",
-	"opencode-sdd-engram-manage": "opencode-sdd-engram-manage",
+	"opencode-open-in-app": "opencode-open-in-app",
 }
 
 type sourceToken struct {
@@ -406,8 +404,7 @@ func v2UIPluginIdentityResolver(configDir string, selected map[string]bool) plug
 				return plugin.identity
 			}
 			if local && (candidate == filepath.Join(configDir, "tui-plugins", plugin.directory) ||
-				(plugin.identity == "angel-logo" && candidate == filepath.Join(configDir, "tui-plugins", "angel-logo.tsx")) ||
-				(plugin.identity == "opencode-sdd-engram-manage" && candidate == filepath.Join(configDir, "tui-plugins", "sdd-engram-manage.ts"))) {
+				(plugin.identity == "angel-logo" && candidate == filepath.Join(configDir, "tui-plugins", "angel-logo.tsx"))) {
 				return plugin.identity
 			}
 		}

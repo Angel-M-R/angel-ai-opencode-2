@@ -10,7 +10,7 @@ import (
 	assetfs "angel-ai-opencode/internal/assets"
 )
 
-func TestLoadDoesNotIncludeVendoredOpenSpecSkills(t *testing.T) {
+func TestLoadDoesNotIncludeRetiredIntegrations(t *testing.T) {
 	assets := filepath.Join("..", "..", "assets")
 	categories, err := Load(assetfs.Directory(assets))
 	if err != nil {
@@ -18,12 +18,9 @@ func TestLoadDoesNotIncludeVendoredOpenSpecSkills(t *testing.T) {
 	}
 
 	for _, category := range categories {
-		if category.Name != "skills" {
-			continue
-		}
 		for _, item := range category.Items {
-			if item.Name == "openspec" || strings.HasPrefix(item.Name, "openspec-") {
-				t.Fatalf("OpenSpec skill %q is vendored in the installer catalog", item.Name)
+			if item.Name == "openspec" || item.Name == "engram" || item.Name == "codegraph" || strings.HasPrefix(item.Name, "openspec-") || strings.HasPrefix(item.Name, "sdd-") {
+				t.Fatalf("retired asset %q is vendored in the installer catalog", item.Name)
 			}
 		}
 	}

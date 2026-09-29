@@ -241,31 +241,12 @@ func prepareInstallation(request InstallationRequest) (preparedInstallation, err
 		fragments = append(fragments, patch)
 	}
 
-	codegraphSelected, codegraphSpecified := request.Extras[codegraphOptionKey]
 	tsgoSelected, tsgoSpecified := request.Extras[tsgoOptionKey]
-	var codegraphObject map[string]any
-	if codegraphSpecified && codegraphSelected {
-		patch, err := readAssetJSONObject(request.Assets, "integrations/codegraph/mcp.json")
-		if err != nil {
-			return preparedInstallation{}, fmt.Errorf("reading CodeGraph MCP config: %w", err)
-		}
-		mcp, ok := patch["mcp"].(map[string]any)
-		if !ok {
-			return preparedInstallation{}, fmt.Errorf("CodeGraph MCP config has no mcp object")
-		}
-		codegraphObject, ok = mcp["codegraph"].(map[string]any)
-		if !ok {
-			return preparedInstallation{}, fmt.Errorf("CodeGraph MCP config has no codegraph object")
-		}
-	}
 
 	opencodeFile, ok, err := prepareOpenCodeJSONObject(
 		filepath.Join(request.ConfigDir, "opencode.json"),
 		"https://opencode.ai/config.json",
 		fragments,
-		codegraphSpecified,
-		codegraphSelected,
-		codegraphObject,
 		tsgoSpecified,
 		tsgoSelected,
 	)
@@ -284,20 +265,13 @@ func prepareInstallation(request InstallationRequest) (preparedInstallation, err
 		prepared.files = append(prepared.files, opencodeFile)
 	}
 
-	if request.Extras["engram-plugin"] {
-		file, err := prepareSourceFile(request.Assets, "integrations/engram/engram.ts", filepath.Join(request.ConfigDir, "plugins", "engram.ts"), false)
-		if err != nil {
-			return preparedInstallation{}, err
-		}
-		prepared.files = append(prepared.files, file)
-	}
 	if err := prepareCMUXExtra(&prepared, request); err != nil {
 		return preparedInstallation{}, err
 	}
 	if err := prepareUIExtras(&prepared, request); err != nil {
 		return preparedInstallation{}, err
 	}
-	agentsFile, ok, err := prepareAgentsFile(request, globalAgents, codegraphSpecified, codegraphSelected)
+	agentsFile, ok, err := prepareAgentsFile(request, globalAgents)
 	if err != nil {
 		return preparedInstallation{}, err
 	}
@@ -421,51 +395,13 @@ func prepareJSONObject(
 func prepareOpenCodeJSONObject(
 	path, defaultSchema string,
 	patches []map[string]any,
-	codegraphSpecified, codegraphSelected bool,
-	codegraphObject map[string]any,
 	tsgoSpecified, tsgoSelected bool,
 ) (preparedFile, bool, error) {
-	var mutations []func(map[string]any) error
-	if codegraphSpecified {
-		mutations = append(mutations, func(config map[string]any) error {
-			mcp, _ := config["mcp"].(map[string]any)
-			if codegraphSelected {
-				if mcp == nil {
-					mcp = map[string]any{}
-					config["mcp"] = mcp
-				}
-				cloned, err := cloneJSONObject(codegraphObject)
-				if err != nil {
-					return err
-				}
-				mcp["codegraph"] = cloned
-			} else if mcp != nil {
-				delete(mcp, "codegraph")
-				if len(mcp) == 0 {
-					delete(config, "mcp")
-				}
-			}
-			return nil
-		})
-	}
-	if tsgoSpecified && tsgoSelected {
-		mutations = append(mutations, configureTsgo)
-	}
 	var mutate func(map[string]any) error
-	if len(mutations) > 0 {
-		mutate = func(config map[string]any) error {
-			for _, mutation := range mutations {
-				if err := mutation(config); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
+	if tsgoSpecified && tsgoSelected {
+		mutate = configureTsgo
 	}
-	return prepareJSONObjectCore(
-		path, defaultSchema, patches, pluginIdentity, mutate,
-		(codegraphSpecified && codegraphSelected) || (tsgoSpecified && tsgoSelected),
-	)
+	return prepareJSONObjectCore(path, defaultSchema, patches, pluginIdentity, mutate, tsgoSpecified && tsgoSelected)
 }
 
 var tsgoLSPCommand = []any{"tsgo", "--lsp", "--stdio"}
@@ -601,67 +537,14 @@ func prepareUIExtras(prepared *preparedInstallation, request InstallationRequest
 	return nil
 }
 
-func prepareAgentsFile(
-	request InstallationRequest,
-	globalAgents *catalog.Item,
-	codegraphSpecified, codegraphSelected bool,
-) (preparedFile, bool, error) {
-	path := filepath.Join(request.ConfigDir, "AGENTS.md")
-	if globalAgents != nil {
-		content, err := request.Assets.ReadFile(globalAgents.Source)
-		if err != nil {
-			return preparedFile{}, false, err
-		}
-		if codegraphSpecified && codegraphSelected {
-			guidance, err := request.Assets.ReadFile("integrations/codegraph/AGENTS.md")
-			if err != nil {
-				return preparedFile{}, false, err
-			}
-			content = joinDocumentParts(string(content), string(guidance))
-		}
-		file, err := prepareFile(path, content, 0o644, true)
-		return file, true, err
-	}
-	if !codegraphSpecified {
+func prepareAgentsFile(request InstallationRequest, globalAgents *catalog.Item) (preparedFile, bool, error) {
+	if globalAgents == nil {
 		return preparedFile{}, false, nil
 	}
-	existing, err := os.ReadFile(path)
-	if err != nil && !os.IsNotExist(err) {
-		return preparedFile{}, false, err
-	}
-	if os.IsNotExist(err) && !codegraphSelected {
-		return preparedFile{}, false, nil
-	}
-	updated, err := removeManagedBlock(
-		string(existing),
-		"<!-- codegraph-guidance -->",
-		"<!-- /codegraph-guidance -->",
-	)
+	content, err := request.Assets.ReadFile(globalAgents.Source)
 	if err != nil {
 		return preparedFile{}, false, err
 	}
-	if codegraphSelected {
-		guidance, err := request.Assets.ReadFile("integrations/codegraph/AGENTS.md")
-		if err != nil {
-			return preparedFile{}, false, err
-		}
-		updated = string(joinDocumentParts(updated, string(guidance)))
-	} else if updated != "" {
-		updated = strings.TrimSpace(updated) + "\n"
-	}
-	file, err := prepareFile(path, []byte(updated), 0o644, false)
+	file, err := prepareFile(filepath.Join(request.ConfigDir, "AGENTS.md"), content, 0o644, true)
 	return file, true, err
-}
-
-func joinDocumentParts(parts ...string) []byte {
-	var nonempty []string
-	for _, part := range parts {
-		if trimmed := strings.TrimSpace(part); trimmed != "" {
-			nonempty = append(nonempty, trimmed)
-		}
-	}
-	if len(nonempty) == 0 {
-		return nil
-	}
-	return []byte(strings.Join(nonempty, "\n\n") + "\n")
 }

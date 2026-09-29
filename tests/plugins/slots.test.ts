@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test"
 import { testRender } from "@opentui/solid"
 import type { Plugin } from "@opencode/plugin/tui"
-import { createOpenSpecTaskTui } from "../../assets/tui-plugins/openspec-tasks/tui"
 import angel from "../../assets/tui-plugins/angel-logo/tui"
 import openInApp from "../../assets/tui-plugins/open-in-app/tui"
 
@@ -32,31 +31,6 @@ test("commands mount in the official home footer without relying on the app slot
       expect(h.commands.some(command => command.slash?.name === slash)).toBe(true)
     } finally { rendered.renderer.destroy(); await cleanup?.() }
   }
-})
-
-test("OpenSpec native sidebar uses the session project and renders fixture progress", async () => {
-  const h = host()
-  const directories: string[] = []
-  const plugin = createOpenSpecTaskTui({
-    listGateway: { resolve: async directory => { directories.push(directory); return { status: "selected", changeName: "fixture" } } },
-    statusGateway: { resolve: async () => ({ status: "resolved", change: {
-      name: "fixture", rootPath: "/project", changesDirectoryPath: "/project/openspec/changes",
-      taskFilePath: "/project/openspec/changes/fixture/tasks.md",
-    } }) },
-    readTaskFile: async () => "# Validation\n- [x] Complete\n- [ ] Pending\n",
-    watch: () => ({ close() {} }),
-  })
-  await plugin.setup(h.context)
-  const slot = h.slots.find(slot => slot.append === "sidebar.content")
-  const rendered = await testRender(() => slot.render({ sessionID: "fixture" }), { width: 80, height: 20 })
-  try {
-    await new Promise(resolve => setTimeout(resolve, 30))
-    await rendered.renderOnce()
-    const frame = rendered.captureCharFrame()
-    expect(directories).toEqual(["/project"])
-    expect(frame).toContain("OpenSpec: fixture 1/2")
-    expect(frame).toContain("Pending")
-  } finally { rendered.renderer.destroy() }
 })
 
 test("patched hosts replace the central logo without duplicating branding in the footer", async () => {

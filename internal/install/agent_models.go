@@ -12,9 +12,6 @@ import (
 // and is never read or written by this feature.
 var configurableAgents = []string{
 	"angel-orchestrator",
-	"openspec-planner",
-	"openspec-implementer",
-	"openspec-verifier",
 	"review-correctness",
 	"review-security-risk",
 	"review-simplicity",

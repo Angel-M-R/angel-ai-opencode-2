@@ -589,7 +589,7 @@ func TestApplyInstallationRollsBackWhenPublishedContentCannotBeConfirmed(t *test
 
 func TestApplyInstallationReportsPackageChangesAsExternalToFileRollback(t *testing.T) {
 	environment := newInjectedCLIEnvironment(t, "npm")
-	environment.latestVersions[codegraphRegistryPackage] = "2.0.0"
+	environment.latestVersions[exampleRegistryPackage] = "2.0.0"
 	useGlobalCLICommands(t, environment.commands())
 
 	target := t.TempDir()
@@ -598,7 +598,7 @@ func TestApplyInstallationReportsPackageChangesAsExternalToFileRollback(t *testi
 	})
 
 	report, err := ApplyInstallation(installationRequestForDescriptors(
-		t, target, true, globalCLIDescriptors[0],
+		t, target, true, exampleGlobalCLI,
 	))
 	if err == nil || !strings.Contains(err.Error(), "external package-manager effects were not reverted") {
 		t.Fatalf("ApplyInstallation error = %v, want external-effect notice", err)
@@ -613,12 +613,12 @@ func TestApplyInstallationReportsPackageChangesAsExternalToFileRollback(t *testi
 
 func TestApplyInstallationTreatsFailedPackageCommandAsExternalAttempt(t *testing.T) {
 	environment := newInjectedCLIEnvironment(t, "npm")
-	environment.latestVersions[codegraphRegistryPackage] = "2.0.0"
-	environment.installationErrs[codegraphPackage] = errors.New("exit 1")
+	environment.latestVersions[exampleRegistryPackage] = "2.0.0"
+	environment.installationErrs[examplePackage] = errors.New("exit 1")
 	useGlobalCLICommands(t, environment.commands())
 
 	_, err := ApplyInstallation(installationRequestForDescriptors(
-		t, t.TempDir(), false, globalCLIDescriptors[0],
+		t, t.TempDir(), false, exampleGlobalCLI,
 	))
 	if err == nil || !strings.Contains(err.Error(), "external package-manager effects were not reverted") {
 		t.Fatalf("ApplyInstallation error = %v, want external-attempt notice", err)

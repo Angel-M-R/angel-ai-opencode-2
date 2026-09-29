@@ -14,12 +14,7 @@ Test functional contracts instead:
   (`TestAgentAssetsAreCatalogedAndInstalledUnchanged`,
   `TestExistingOrchestratorCopyRequiresUpdatedSourceAndSelectedReconciliation`).
 - **Structured data the code consumes** — frontmatter fields the harness reads
-  (`TestAgentFrontmatterRemainsStructurallySafe`), embedded examples decoded
-  strictly against the real Go types
-  (`TestOpenSpecVerifierCompletionExampleMatchesServiceSchema`).
-- **References validated against a registry** — every `openspec-*` name in an
-  agent asset must be an official core skill or an Angel worker agent
-  (`TestAgentAssetsReferenceOnlyOfficialOpenSpecNames`).
+  (`TestAgentFrontmatterRemainsStructurallySafe`).
 
 If a prompt rule feels worth guarding, extract the machine-checkable part — a
 name, a schema, a config value, an installer behavior — and test that. Never
