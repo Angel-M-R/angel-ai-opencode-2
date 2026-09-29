@@ -20,7 +20,7 @@ describe("v2 MCP state", () => {
   })
   test("renders native v2 status objects in a tall terminal", async () => {
     const context = {
-      data: { location: { mcp: { server: { list: () => servers } } } },
+      data: { location: { mcp: { server: { list: () => servers, sync: async () => {} } } } },
       theme: { text: { accent: "#00aaff", muted: "#aaaaaa", feedback: {
         success: { base: "#00ff00" }, warning: { base: "#ffff00" }, error: { base: "#ff0000" },
       } } },

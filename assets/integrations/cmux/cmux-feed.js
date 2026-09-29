@@ -226,7 +226,7 @@ export const CMUXFeed = async (ctx) => {
 
   const questionAnswers = (selections) => {
     if (!Array.isArray(selections) || selections.length === 0) return [[]];
-    return selections.map((selection) => [String(selection)]);
+    return selections.map((selection) => Array.isArray(selection) ? selection.map(String) : [String(selection)]);
   };
 
   const resolveSessionPlanPath = (sid, rawPlanPath) => {
@@ -491,6 +491,7 @@ export const CMUXFeed = async (ctx) => {
 
   return {
     dispose() { client?.destroy(); failPending(); },
+    cancelPending(requestID) { resolvePending(requestID, { status: "cancelled" }); },
     event: async ({ event }) => {
       const tracked = trackMessage(event);
       if (tracked) {
@@ -647,6 +648,10 @@ export default {
     const hooks = await CMUXFeed({
       directory: context.location.directory,
       client: {
+        session: { update: ({ path, body }) => context.session.update({
+          sessionID: path.id,
+          permissions: body.permission.map(rule => ({ action: rule.permission, resource: rule.pattern, effect: rule.action })),
+        }) },
         permission: { reply: ({ requestID, reply, message }) => {
           const request = requests.get(requestID);
           if (!request) throw new Error("Permission request is no longer active");
@@ -656,8 +661,10 @@ export default {
           reply: ({ requestID, answers }) => {
             const form = forms.get(requestID);
             if (!form) throw new Error("Form is no longer active");
-            const answer = Object.fromEntries(form.fields.map((field, i) => [field.key,
-              field.type === "multiselect" ? (answers[i] ?? []) : (answers[i]?.[0] ?? "")]));
+            const answer = Object.fromEntries(form.fields.map((field, i) => {
+              const values = (answers[i] ?? []).map(value => field.options?.find(option => option.value === value || option.label === value)?.value ?? value);
+              return [field.key, field.type === "multiselect" ? values : (values[0] ?? "")];
+            }));
             return context.session.form.reply({ sessionID: form.sessionID, formID: requestID, answer });
           },
           reject: ({ requestID }) => {
@@ -671,8 +678,8 @@ export default {
     const requests = new Map();
     const controller = new AbortController();
     const deliver = async event => {
-      if (event.type === "permission.replied") { requests.delete(event.data.requestID); return; }
-      if (event.type === "form.replied" || event.type === "form.cancelled") { forms.delete(event.data.id); return; }
+      if (event.type === "permission.replied") { hooks.cancelPending(event.data.requestID); requests.delete(event.data.requestID); return; }
+      if (event.type === "form.replied" || event.type === "form.cancelled") { hooks.cancelPending(event.data.id); forms.delete(event.data.id); return; }
       if (event.type === "permission.asked") requests.set(event.data.id, event.data);
       if (event.type === "form.created") {
         const form = event.data.form;
@@ -684,7 +691,7 @@ export default {
             id: form.id, sessionID: form.sessionID,
             questions: form.fields.map(f => ({ id: f.key, header: f.title,
               question: f.description || f.title || form.title, multiple: f.type === "multiselect",
-              options: (f.options || []).map(o => ({ id: o.value, label: o.value, description: o.label })),
+              options: (f.options || []).map(o => ({ id: o.value, label: o.label || o.value })),
             })),
           } } });
         } finally { forms.delete(form.id); }
@@ -710,7 +717,7 @@ function v2Events(event) {
     return [{ type: event.type, properties: { info: { ...data, id: data.sessionID, directory } } }];
   }
   if (event.type === "session.idle" || event.type === "session.status") {
-    return [{ type: event.type, properties: data }];
+    return [{ type: event.type === "session.status" && data.status?.type === "idle" ? "session.idle" : event.type, properties: data }];
   }
   if (event.type === "permission.asked") {
     return [{ type: event.type, properties: { ...data, permission: data.action, patterns: data.resources, always: data.save } }];

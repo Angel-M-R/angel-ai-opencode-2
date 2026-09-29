@@ -90,3 +90,37 @@ func TestV2MigrationRejectsInvalidCLIConfigBeforeWriting(t *testing.T) {
 		t.Fatal("expected invalid config error")
 	}
 }
+
+func TestV2MigrationReconcilesDescriptorsAndPreservesOptions(t *testing.T) {
+	target := t.TempDir()
+	writeTestFile(t, filepath.Join(target, "cli.json"), `{"plugins":[{"package":"opencode-open-in-app@1.0.0","options":{"favourite":"editor"}},"opencode-open-in-app@2.0.0",{"package":"foreign","options":{"keep":true}}]}`)
+	request, err := V2MigrationRequest(assets.Directory("../../assets"), target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ApplyInstallation(request); err != nil {
+		t.Fatal(err)
+	}
+	config, err := readOptionalConfig(filepath.Join(target, "cli.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []any{map[string]any{"package": filepath.Join(target, "tui-plugins", "open-in-app"), "options": map[string]any{"favourite": "editor"}}, map[string]any{"package": "foreign", "options": map[string]any{"keep": true}}}
+	if !reflect.DeepEqual(config["plugins"], want) {
+		t.Fatalf("plugins = %#v", config["plugins"])
+	}
+}
+
+func TestV2MigrationRecognizesPackageDirectory(t *testing.T) {
+	target, external := t.TempDir(), t.TempDir()
+	writeTestFile(t, filepath.Join(external, "package.json"), `{"name":"opencode-open-in-app"}`)
+	raw, _ := json.Marshal(map[string]any{"plugins": []any{external}})
+	writeTestFile(t, filepath.Join(target, "cli.json"), string(raw))
+	request, err := V2MigrationRequest(assets.Directory("../../assets"), target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !request.Extras["opencode-open-in-app"] {
+		t.Fatal("directory package not selected for migration")
+	}
+}

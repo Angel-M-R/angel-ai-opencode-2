@@ -7,6 +7,7 @@
 // The keymap layer is owned by a mounted component (not by `setup`) because
 // `context.keymap.layer` resolves a Solid context owned by the caller.
 
+import { RGBA, rgbToHex } from "@opentui/core";
 import { Plugin, usePlugin } from "@opencode/plugin/tui";
 import type { KeymapCommand } from "@opencode/plugin/tui/context";
 import {
@@ -74,12 +75,16 @@ const [activeSessionID, setActiveSessionID] = createSignal<
 >(undefined);
 
 let lastRefreshAt = 0;
+let refreshTimer: ReturnType<typeof setTimeout> | undefined;
 
 // Coalesce the flood of server events into at most one recompute per frame
 // budget.
 function requestRefresh(): void {
   const now = Date.now();
-  if (now - lastRefreshAt < REFRESH_COALESCE_MS) return;
+  if (now - lastRefreshAt < REFRESH_COALESCE_MS) {
+    refreshTimer ??= setTimeout(() => { refreshTimer = undefined; requestRefresh(); }, REFRESH_COALESCE_MS - (now - lastRefreshAt));
+    return;
+  }
   lastRefreshAt = now;
   setTick((value) => value + 1);
 }
@@ -127,7 +132,7 @@ function allSubagents(): V2Session[] {
   tick();
   if (!context) return [];
   try {
-    return (context.data.session.list() ?? [])
+    return (context.data.session.list() ?? []).filter(session => session.location.directory === (context.location ?? context.data.location.default()).directory)
       .map((session) => toV2Session(session))
       .filter(
         (session): session is V2Session =>
@@ -144,6 +149,7 @@ function allSubagents(): V2Session[] {
 // terminal default, so convert to hex and only then fall back.
 function colorToHex(value: unknown): string | undefined {
   if (typeof value === "string") return value;
+  if (value instanceof RGBA) return rgbToHex(value);
   const record = value as { buffer?: unknown } | undefined;
   const buffer = record?.buffer;
   if (!Array.isArray(buffer)) return undefined;
@@ -176,15 +182,15 @@ function resolveFg(
 function fgFor(session: V2Session): string {
   switch (deriveStatus(session)) {
     case "running":
-      return resolveFg(state.context, "text.feedback.warning.default", "#ffcb6b");
+      return resolveFg(state.context, "text.feedback.warning.base", "#ffcb6b");
     case "stale":
-      return resolveFg(state.context, "hue.purple.200", "#c792ea");
+      return resolveFg(state.context, "text.accent", "#c792ea");
     case "error":
-      return resolveFg(state.context, "text.feedback.error.default", "#f07178");
+      return resolveFg(state.context, "text.feedback.error.base", "#f07178");
     case "done":
-      return resolveFg(state.context, "text.feedback.success.default", "#c3e88d");
+      return resolveFg(state.context, "text.feedback.success.base", "#c3e88d");
     default:
-      return resolveFg(state.context, "text.subdued", "#546e7a");
+      return resolveFg(state.context, "text.muted", "#546e7a");
   }
 }
 
@@ -318,7 +324,7 @@ function SidebarSubagents(props: { sessionID: string }) {
     onCleanup(() => clearInterval(timer));
   });
 
-  const items = createMemo(() => childrenOf(props.sessionID));
+  const items = createMemo(() => { now(); return childrenOf(props.sessionID); });
   const visible = createMemo(() =>
     maxCandidates(items(), state.prefs?.showCompleted ?? false, MAX_DONE_ROWS),
   );
@@ -351,13 +357,13 @@ function SidebarSubagents(props: { sessionID: string }) {
     return { running, stale, done, failed };
   });
 
-  const headerColor = resolveFg(context, "text.default", "#eeffff");
-  const subdued = resolveFg(context, "text.subdued", "#546e7a");
-  const selected = resolveFg(context, "text.action.primary.selected", "#82aaff");
-  const runningColor = resolveFg(context, "text.feedback.warning.default", "#ffcb6b");
-  const doneColor = resolveFg(context, "text.feedback.success.default", "#c3e88d");
-  const failedColor = resolveFg(context, "text.feedback.error.default", "#f07178");
-  const staleColor = resolveFg(context, "hue.purple.200", "#c792ea");
+  const headerColor = resolveFg(context, "text.base", "#eeffff");
+  const subdued = resolveFg(context, "text.muted", "#546e7a");
+  const selected = resolveFg(context, "text.accent", "#82aaff");
+  const runningColor = resolveFg(context, "text.feedback.warning.base", "#ffcb6b");
+  const doneColor = resolveFg(context, "text.feedback.success.base", "#c3e88d");
+  const failedColor = resolveFg(context, "text.feedback.error.base", "#f07178");
+  const staleColor = resolveFg(context, "text.accent", "#c792ea");
 
   // V1 parity: the header works as a clickable tab that collapses/expands the
   // subagent list without requiring keyboard focus (mirrors `onToggleExpanded`).
@@ -441,11 +447,11 @@ function FooterSummary() {
   );
   const summary = createMemo(() => {
     if (busyCount() + doneCount() + failedCount() === 0) return "";
-    return `↳ ${busyCount()} run · ${doneCount()} done · ${failedCount()} err`;
+    return `All workspace workers: ${busyCount()} run · ${doneCount()} done · ${failedCount()} err`;
   });
 
-  const info = resolveFg(state.context, "text.feedback.warning.default", "#ffcb6b");
-  const error = resolveFg(state.context, "text.feedback.error.default", "#f07178");
+  const info = resolveFg(state.context, "text.feedback.warning.base", "#ffcb6b");
+  const error = resolveFg(state.context, "text.feedback.error.base", "#f07178");
 
   return (
     <Show when={summary() !== ""}>
@@ -486,6 +492,9 @@ export default Plugin.define({
     requestRefresh();
 
     return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = undefined;
+      lastRefreshAt = 0;
       stopEvents?.();
       releaseSidebar?.();
       releaseFooter?.();

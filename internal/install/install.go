@@ -132,6 +132,16 @@ func mergePluginArrayWithIdentity(existing, desired []any, resolveIdentity plugi
 				continue
 			}
 			reconciled[identity] = true
+			if descriptor, ok := value.(map[string]any); ok {
+				if target, ok := replacement.(string); ok {
+					cloned := make(map[string]any, len(descriptor))
+					for key, value := range descriptor {
+						cloned[key] = value
+					}
+					cloned["package"] = target
+					replacement = cloned
+				}
+			}
 			result = append(result, replacement)
 		} else {
 			result = append(result, value)
@@ -147,8 +157,16 @@ func mergePluginArrayWithIdentity(existing, desired []any, resolveIdentity plugi
 	return result
 }
 
-func pluginIdentity(value any) string {
+func pluginSpec(value any) (string, bool) {
+	if descriptor, ok := value.(map[string]any); ok {
+		value = descriptor["package"]
+	}
 	text, ok := value.(string)
+	return text, ok
+}
+
+func pluginIdentity(value any) string {
+	text, ok := pluginSpec(value)
 	if !ok {
 		encoded, _ := json.Marshal(value)
 		return "json:" + string(encoded)
@@ -178,7 +196,7 @@ func pluginIdentity(value any) string {
 func tuiPluginIdentityResolver(configDir string) pluginIdentityResolver {
 	return func(value any) string {
 		fallback := pluginIdentity(value)
-		entry, ok := value.(string)
+		entry, ok := pluginSpec(value)
 		if !ok {
 			return fallback
 		}
@@ -387,7 +405,7 @@ func isRelativePluginPath(entry string) bool {
 func v2UIPluginIdentityResolver(configDir string, selected map[string]bool) pluginIdentityResolver {
 	legacy := tuiPluginIdentityResolver(configDir)
 	return func(value any) string {
-		entry, ok := value.(string)
+		entry, ok := pluginSpec(value)
 		if !ok {
 			return pluginIdentity(value)
 		}
@@ -415,7 +433,11 @@ func v2UIPluginIdentityResolver(configDir string, selected map[string]bool) plug
 // Bundled entrypoints often export a computed definition. Read their nearest
 // package manifest instead of executing a plugin or guessing from source text.
 func localPluginPackageName(file string) string {
-	for dir := filepath.Dir(file); ; dir = filepath.Dir(dir) {
+	start := filepath.Dir(file)
+	if info, err := os.Stat(file); err == nil && info.IsDir() {
+		start = file
+	}
+	for dir := start; ; dir = filepath.Dir(dir) {
 		raw, err := os.ReadFile(filepath.Join(dir, "package.json"))
 		if err == nil {
 			var manifest struct {

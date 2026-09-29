@@ -26,10 +26,17 @@ def retired_path(value):
                for part in Path(value).parts)
 
 
+def default_config_dir():
+    return Path(os.environ.get("OPENCODE_CONFIG_DIR") or
+                str(Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "opencode"))
+
+
 def retired_plugin(entry):
     spec = entry[0] if isinstance(entry, list) and entry else entry
+    if isinstance(spec, dict):
+        spec = spec.get("package")
     if not isinstance(spec, str):
-        raise ValueError('plugin entries must be strings or non-empty package tuples')
+        raise ValueError('plugin entries must be strings, package descriptors or non-empty package tuples')
     if spec.startswith('file:'):
         spec = unquote(urlparse(spec).path)
     return retired_path(spec)
@@ -202,7 +209,7 @@ def apply(root, edits, backup_root):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--target', type=Path, default=Path.home() / '.config/opencode')
+    parser.add_argument('--target', type=Path, default=default_config_dir())
     parser.add_argument('--backup-root', type=Path, default=Path.home() / '.local/state/angel-ai/backups')
     parser.add_argument('--apply', action='store_true')
     args = parser.parse_args()

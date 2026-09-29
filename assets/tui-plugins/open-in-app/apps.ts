@@ -171,6 +171,6 @@ function isSuccessfulWindowsExplorerExit(
   return (
     app.id === "explorer" &&
     app.command === "explorer" &&
-    failure.kind === "exit"
+    failure.kind === "exit" && failure.exitCode === 1
   );
 }

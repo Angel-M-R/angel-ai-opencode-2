@@ -55,6 +55,18 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual(memory.read_text(), 'preserve user data')
         self.assertEqual(retire.plan(self.root), {})
 
+    def test_native_descriptors_preserve_options(self):
+        kept = {'package': './tui-plugins/open-in-app', 'options': {'favorite': 'code'}}
+        self.write('cli.json', {'plugins': [{'package': 'opencode-sdd-engram-manage', 'options': {}}, kept]})
+        retire.apply(self.root, retire.plan(self.root), self.backups)
+        self.assertEqual(json.loads((self.root / 'cli.json').read_text())['plugins'], [kept])
+
+    def test_config_directory_environment_precedence(self):
+        with patch.dict(retire.os.environ, {'OPENCODE_CONFIG_DIR': '/custom', 'XDG_CONFIG_HOME': '/xdg'}, clear=True):
+            self.assertEqual(retire.default_config_dir(), Path('/custom'))
+        with patch.dict(retire.os.environ, {'XDG_CONFIG_HOME': '/xdg'}, clear=True):
+            self.assertEqual(retire.default_config_dir(), Path('/xdg/opencode'))
+
     def test_shared_skill_is_replaced_locally_without_editing_target(self):
         shared = self.base / 'shared'
         shared.mkdir()
