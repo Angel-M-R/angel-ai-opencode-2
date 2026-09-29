@@ -13,6 +13,9 @@ import type { Plugin } from "@opencode/plugin/tui"
 
 test("monitor preserves graphemes, explicit totals and delimited agent tags", () => {
   expect(textColumns("©︎")).toBe(1)
+  expect(textColumns("⌚︎")).toBe(2)
+  expect(takeColumns("⌚︎x", 1)).toBe("")
+  expect(truncateToColumns("⌚︎xy", 3)).toBe("⌚︎…")
   expect(textColumns("1️⃣")).toBe(2)
   expect(takeColumns("1️⃣x", 1)).toBe("")
   expect(textColumns("👨‍👩‍👧‍👦")).toBe(2)
