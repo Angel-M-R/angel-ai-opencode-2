@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from urllib.parse import unquote, urlparse
 
 REPO = Path(__file__).resolve().parents[1]
-RETIRED = {'engram-plugin', 'engram', 'sdd', 'openspec', 'notion', 'supabase', 'railway', 'codegraph'}
+RETIRED = {'cmux', 'engram-plugin', 'engram', 'sdd', 'openspec', 'notion', 'supabase', 'railway', 'codegraph'}
 MANAGED_ASSETS = {'agents/angel-orchestrator.md', 'skills/product-grilling/SKILL.md'}
 PACKAGES = {'opencode-sdd-engram-manage', 'opencode-openspec-task-tui', 'openspec-opencode-statusline'}
 
@@ -29,7 +29,7 @@ def retired_path(value):
         suffix = Path(part).suffix
         asset_name = part[:-len(suffix)] if suffix in {'.patch', '.ts', '.tsx', '.js', '.mjs', '.cjs'} else part
         return (retired_name(part) or retired_package(asset_name) or
-                part in {'engram.ts', 'engram.js', 'sdd-engram-manage.ts', 'sdd-badge-patch.test.ts'})
+                part in {'cmux-feed.js', 'cmux-session.js', 'engram.ts', 'engram.js', 'sdd-engram-manage.ts', 'sdd-badge-patch.test.ts'})
     return any(retired_part(part) for part in Path(value).parts)
 
 

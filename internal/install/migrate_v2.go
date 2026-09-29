@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"angel-ai-opencode/internal/assets"
-	"angel-ai-opencode/internal/catalog"
 )
 
 // V2MigrationRequest updates only integrations already installed. It leaves
@@ -37,15 +36,6 @@ func V2MigrationRequest(source assets.Source, configDir string) (InstallationReq
 					request.Extras[p.option] = true
 				}
 			}
-		}
-	}
-	// Existing server files are auto-discovered in both versions. Updating them
-	// does not require the cmux executable on machines that no longer use cmux.
-	for _, name := range cmuxPluginFiles {
-		if _, err := os.Stat(filepath.Join(configDir, "plugins", name)); err == nil {
-			request.Items = append(request.Items, catalog.Item{Name: name, Source: "integrations/cmux/" + name, Dest: "plugins/" + name, Kind: catalog.CopyFile})
-		} else if !os.IsNotExist(err) {
-			return request, err
 		}
 	}
 	return request, nil

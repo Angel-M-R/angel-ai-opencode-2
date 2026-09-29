@@ -2,7 +2,9 @@ import { expect, test } from "bun:test"
 import { testRender } from "@opentui/solid"
 import type { Plugin } from "@opencode/plugin/tui"
 import angel from "../../assets/tui-plugins/angel-logo/tui"
-import openInApp from "../../assets/tui-plugins/open-in-app/tui"
+import { createOpenInAppTui } from "../../assets/tui-plugins/open-in-app/tui"
+
+const openInApp = createOpenInAppTui({ catalog: { getDetectedApps: async () => [] } })
 
 function host() {
   const slots: any[] = [], commands: any[] = []
@@ -11,7 +13,7 @@ function host() {
     data: { session: { get: () => ({ location: { directory: "/project" } }) } },
     storage: { store: (_key: string, options: any) => [options.initial, async (update: any) => update(options.initial)] },
     keymap: { layer: (factory: any) => { commands.push(...factory().commands) } },
-    ui: { slot: (slot: any) => { slots.push(slot) }, toast: { show() {} } },
+    ui: { slot: (slot: any) => { slots.push(slot); return () => {} }, toast: { show() {} } },
     theme: { text: { base: "#ffffff", muted: "#aaaaaa", accent: "#00aaff", feedback: {
       success: { base: "#00ff00" }, warning: { base: "#ffff00" }, error: { base: "#ff0000" },
     } }, background: { base: "#000000", raised: "#111111" }, border: { base: "#555555" } },

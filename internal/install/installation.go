@@ -62,9 +62,6 @@ var prepareInstallationForApply = prepareInstallation
 // PlanInstallation inspects the destination and describes the exact changes
 // ApplyInstallation would make without mutating the machine.
 func PlanInstallation(request InstallationRequest) ([]string, error) {
-	if err := preflightSelectedExtras(request.Extras, systemGlobalCLICommands.lookPath); err != nil {
-		return nil, err
-	}
 	prepared, err := prepareInstallation(request)
 	if err != nil {
 		return nil, err
@@ -96,9 +93,6 @@ func ApplyInstallation(request InstallationRequest) ([]string, error) {
 func ApplyInstallationWithDigests(
 	request InstallationRequest,
 ) (done []string, digests map[string]string, resultErr error) {
-	if err := preflightSelectedExtras(request.Extras, systemGlobalCLICommands.lookPath); err != nil {
-		return nil, nil, err
-	}
 	lease, err := acquireInstallationLock(request.ConfigDir)
 	if err != nil {
 		return nil, nil, err
@@ -265,9 +259,6 @@ func prepareInstallation(request InstallationRequest) (preparedInstallation, err
 		prepared.files = append(prepared.files, opencodeFile)
 	}
 
-	if err := prepareCMUXExtra(&prepared, request); err != nil {
-		return preparedInstallation{}, err
-	}
 	if err := prepareUIExtras(&prepared, request); err != nil {
 		return preparedInstallation{}, err
 	}
@@ -348,25 +339,6 @@ func prepareFile(path string, content []byte, perm os.FileMode, fullReplacement 
 		return preparedFile{}, err
 	}
 	return file, nil
-}
-
-func prepareCMUXExtra(prepared *preparedInstallation, request InstallationRequest) error {
-	if !request.Extras[cmuxOptionKey] {
-		return nil
-	}
-	for _, name := range cmuxPluginFiles {
-		file, err := prepareSourceFile(
-			request.Assets,
-			path.Join("integrations", "cmux", name),
-			filepath.Join(request.ConfigDir, "plugins", name),
-			false,
-		)
-		if err != nil {
-			return fmt.Errorf("preparing cmux plugin %s: %w", name, err)
-		}
-		prepared.files = append(prepared.files, file)
-	}
-	return nil
 }
 
 func readAssetJSONObject(source assets.Source, sourcePath string) (map[string]any, error) {

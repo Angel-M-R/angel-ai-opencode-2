@@ -1,10 +1,7 @@
 package install
 
-import "fmt"
-
 const (
 	tsgoOptionKey      = "tsgo"
-	cmuxOptionKey      = "cmux"
 	openInAppOptionKey = "opencode-open-in-app"
 )
 
@@ -48,14 +45,8 @@ var ExtraOptions = []ExtraOption{
 	{
 		Key:             openInAppOptionKey,
 		Label:           "Open in App",
-		Description:     "Plugin v2: abre archivos y recursos en sus aplicaciones nativas",
+		Description:     "Plugin v2: abre el proyecto en un editor o explorador de archivos",
 		DefaultSelected: true,
-	},
-	{
-		Key:             cmuxOptionKey,
-		Label:           "cmux",
-		Description:     "Notificaciones y Feed de cmux para sesiones de OpenCode",
-		DefaultSelected: false,
 	},
 }
 
@@ -63,17 +54,4 @@ var uiPlugins = []struct{ option, identity, directory string }{
 	{"angel-logo", "angel-logo", "angel-logo"},
 	{"subagent-statusline", "opencode-subagent-statusline", "subagent-statusline"},
 	{openInAppOptionKey, "opencode-open-in-app", "open-in-app"},
-}
-var cmuxPluginFiles = []string{"cmux-session.js", "cmux-feed.js"}
-
-type executableLookup func(string) (string, error)
-
-func preflightSelectedExtras(extras map[string]bool, lookPath executableLookup) error {
-	if !extras[cmuxOptionKey] {
-		return nil
-	}
-	if _, err := lookPath("cmux"); err != nil {
-		return fmt.Errorf("cmux extra requires cmux to be available on PATH: %w", err)
-	}
-	return nil
 }

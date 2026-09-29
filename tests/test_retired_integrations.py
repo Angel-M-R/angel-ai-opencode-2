@@ -35,6 +35,8 @@ class CleanupTests(unittest.TestCase):
         self.write('cli.json', {'plugins': ['foreign', str(self.root / 'tui-plugins/sdd-engram'), ['opencode-openspec-task-tui@1', {'x': 1}], './tui-plugins/open-in-app']})
         self.write('package.json', {'dependencies': {'opencode-sdd-engram-manage': '1', 'kept': '2'}, 'patchedDependencies': {'opencode-sdd-engram-manage@1': 'patches/old.patch'}})
         self.write('plugins/engram.ts', 'old')
+        self.write('plugins/cmux-feed.js', 'old cmux')
+        self.write('plugins/cmux-session.js', 'old cmux')
         self.write('agents/openspec-planner.md', 'old prompt')
         self.write('tui-plugins/sdd-engram/tui.tsx', 'old ui')
         memory = self.write('memories/engram.db', 'preserve user data')
@@ -51,6 +53,8 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual(current['default_agent'], 'general')
         self.assertEqual(current['permission'], {'bash': 'ask'})
         self.assertFalse((self.root / 'plugins/engram.ts').exists())
+        self.assertFalse((self.root / 'plugins/cmux-feed.js').exists())
+        self.assertFalse((self.root / 'plugins/cmux-session.js').exists())
         self.assertFalse((self.root / 'agents/openspec-planner.md').exists())
         self.assertEqual(memory.read_text(), 'preserve user data')
         self.assertEqual(retire.plan(self.root), {})
@@ -211,10 +215,10 @@ class CleanupTests(unittest.TestCase):
 
     def test_state_removes_retired_selection_without_accepting_unrelated_drift(self):
         self.write('opencode.json', {'mcp': {'engram': {}, 'context7': {}}})
-        self.write('.angel-ai-state.json', {'selection': {'extras': {'openspec': True, 'cmux': True}, 'categories': [{'name': 'agents', 'sources': ['agents/openspec-planner.md', 'agents/review-correctness.md']}], 'agent_models': {'openspec-planner': {}, 'general': {}}}, 'files': [{'path': 'agents/openspec-planner.md', 'digest': 'old'}, {'path': 'opencode.json', 'digest': 'preexisting-drift'}]})
+        self.write('.angel-ai-state.json', {'selection': {'extras': {'openspec': True, 'cmux': True, 'theme': True}, 'categories': [{'name': 'agents', 'sources': ['agents/openspec-planner.md', 'agents/review-correctness.md']}], 'agent_models': {'openspec-planner': {}, 'general': {}}}, 'files': [{'path': 'agents/openspec-planner.md', 'digest': 'old'}, {'path': 'opencode.json', 'digest': 'preexisting-drift'}]})
         retire.apply(self.root, retire.plan(self.root), self.backups)
         state = json.loads((self.root / '.angel-ai-state.json').read_text())
-        self.assertEqual(state['selection']['extras'], {'cmux': True})
+        self.assertEqual(state['selection']['extras'], {'theme': True})
         self.assertEqual(state['selection']['categories'][0]['sources'], ['agents/review-correctness.md'])
         self.assertEqual(state['files'], [{'path': 'opencode.json', 'digest': 'preexisting-drift'}])
 

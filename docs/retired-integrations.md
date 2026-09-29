@@ -1,12 +1,12 @@
 # Retire the OpenCode 1 integrations
 
 This cleanup removes Engram, SDD profiles, OpenSpec, Notion, Supabase, Railway
-and CodeGraph. It builds on the OpenCode 2 migration already merged into `main`.
+CodeGraph and cmux. It builds on the OpenCode 2 migration already merged into `main`.
 
 The installer no longer ships their plugins, agents, CLI installers or workflow
 commands. The orchestrator keeps interviews, a confirmed Brief, bounded `general`
 workers, integrated validation and optional reviewers. Angel branding, themes,
-Open in App, subagent monitoring, cmux and tsgo remain available. Context7,
+Open in App, subagent monitoring and tsgo remain available. Context7,
 Chrome DevTools and unrelated MCP configuration are preserved.
 
 ## Existing installations
@@ -93,3 +93,12 @@ in `~/.local/state/angel-ai/backups/retired-20260929-083850-51ug0rhq`.
 The local dependency lockfile was refreshed with `bun install --ignore-scripts`.
 Restoring the prior installer additionally requires copying
 `angel-ai-before-cleanup` from that backup to `~/.local/bin/angel-ai`.
+
+cmux is also removed from the extras catalog, installer and hook assets. Existing
+`cmux-session.js` and `cmux-feed.js` hooks and their config references are removed
+by the same backed-up cleanup command.
+
+Open in App remains installed as a pinned snapshot of its independent v2 port;
+see [plugin provenance](plugin-provenance.md). Claude authentication remains
+because OpenCode 2.0.18 natively offers Anthropic API-key authentication, while
+the installed Claude Max account uses the OAuth plugin.

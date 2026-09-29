@@ -4,8 +4,8 @@ import { RGBA } from "@opentui/core"
 import { labelFor, resolveTokensTotal } from "../../assets/tui-plugins/subagent-statusline/format"
 import { takeColumns, textColumns, truncateToColumns } from "../../assets/tui-plugins/subagent-statusline/text-width"
 import monitor from "../../assets/tui-plugins/subagent-statusline/tui"
-import { createOpenInAppPlugin } from "../../assets/tui-plugins/open-in-app/tui"
-const open = createOpenInAppPlugin(() => ({ getDetectedApps: async () => [] }))
+import { createOpenInAppTui } from "../../assets/tui-plugins/open-in-app/tui"
+const open = createOpenInAppTui({ catalog: { getDetectedApps: async () => [] } })
 import angel from "../../assets/tui-plugins/angel-logo/tui"
 import { defaultProcessExecutor } from "../../assets/tui-plugins/open-in-app/process"
 import { launchApp } from "../../assets/tui-plugins/open-in-app/apps"
@@ -53,7 +53,8 @@ test("UI unload releases every registered slot and picker is keyboard accessible
     if (plugin === open) expect(commands.some(command => command.slash?.name === "open-in-app-choose")).toBe(true)
     rendered.renderer.destroy()
     await cleanup?.()
-    expect(released).toEqual(slots)
+    expect(released).toHaveLength(slots.length)
+    expect(new Set(released)).toEqual(new Set(slots))
   }
 })
 

@@ -26,7 +26,7 @@ opencode
 
 The migration backs up changed files and preserves agent prompts, model choices,
 MCP definitions and permissions. The separate cleanup command retires Engram,
-SDD, OpenSpec, Notion, Supabase, Railway and CodeGraph, with a private backup.
+SDD, OpenSpec, cmux, Notion, Supabase, Railway and CodeGraph, with a private backup.
 See [cleanup and recovery](docs/retired-integrations.md) and the [migration and recovery guide](docs/opencode-v2-migration.md)
 for backup, authentication and verification commands.
 
@@ -103,7 +103,6 @@ and rerun the installer.
 | `~/.config/opencode/skills/<skill>/**` | Selected [skills](assets/skills/) are updated recursively. Additional files already present in the destination are preserved. |
 | `~/.config/opencode/AGENTS.md` | The existing file is fully replaced with the [global Angel AI rules](assets/agents-md/AGENTS.md). |
 | **TUI config** | |
-| `~/.config/opencode/plugins/cmux-*.js` | The [cmux session and feed plugins](assets/integrations/cmux/) are created or replaced when the cmux integration is selected. |
 | `~/.config/opencode/themes/*.json` | Selected [themes](assets/themes/) are created or replaced. |
 | `~/.config/opencode/tui-plugins/*` | The selected [Angel AI TUI plugins](assets/tui-plugins/) are created or replaced. |
 | `~/.config/opencode/opencode.json` | The [MCP](assets/fragments/mcp.json), [permission](assets/fragments/permissions.json), and [settings](assets/fragments/settings.json) fragments are deep-merged into the existing configuration. Selected agent models and tsgo settings are also reconciled without removing unrelated keys. |
@@ -123,8 +122,6 @@ The last wizard step offers standalone integrations and UI toggles.
   vendored v2 plugin showing worker activity in the sidebar.
 - **[Open in App](https://github.com/Angel-M-R/opencode-open-in-app)**: local v2
   plugin that opens files and resources in their native applications.
-- **[cmux](https://cmux.com)**: cmux notifications and Feed for OpenCode
-  sessions.
 
 ## Usage from the repository
 

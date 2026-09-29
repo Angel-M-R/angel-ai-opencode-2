@@ -41,7 +41,6 @@ its inventory, especially if agent prompts have local edits.
 | Open in App | Native sidebar and `/open-in-app`, Alt+O |
 | Subagent status | Native session family and outcome data |
 | Claude authentication | Pinned `opencode-claude-auth-v2@0.4.0-beta.5` |
-| cmux | Native event adapters; use `opencode --standalone` inside cmux |
 
 TUI plugins are installed as directories, so OpenCode can resolve the native
 `tui.tsx` entrypoint. Solid/OpenTUI are supplied by the host. Do not add these
@@ -76,8 +75,7 @@ opencode auth login anthropic --method claude-code
 Before the cleanup, this Mac passed a real Claude request and General Agent
 delegation, native plugin loading, and PTY checks of the restored home layout.
 Those results describe the parent migration. See the cleanup guide for the
-remaining integration set and its checks. cmux is absent on this machine, so
-its hooks load but a live Feed/restore check still requires a cmux host.
+remaining integration set and its checks. cmux hooks are retired by the cleanup.
 
 ## Recovery
 

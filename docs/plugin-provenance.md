@@ -1,14 +1,14 @@
 # Native v2 plugin sources
 
-Vendored plugins retain their MIT licenses next to the source. These copies are
-owned by this migration; they do not automatically track upstream branches.
+Vendored plugins retain their MIT licenses next to the source. These copies are pinned snapshots; they do not automatically track upstream branches.
+Open in App is maintained in its own repository; changes are copied here after
+validation, preserving its source and license.
 
 | Installed component | Source and revision | Local adaptation |
 |---|---|---|
 | Angel logo/MCP | Angel AI assets from base `5a827596e3be77d5a7187d4f30f366ea26ede1b1` | Central logo slot on the patched host, official footer fallback, status objects and commands |
-| Open in App | [Angel-M-R/opencode-open-in-app](https://github.com/Angel-M-R/opencode-open-in-app) `6569d529fe030cb82a2f344fa358b8575c76be99` | Native plugin, sidebar, dialog and preference store |
+| Open in App | [Angel-M-R/opencode-open-in-app](https://github.com/Angel-M-R/opencode-open-in-app) [`169b04e1603f27a01e93e5c9d53ec49467672ef6`](https://github.com/Angel-M-R/opencode-open-in-app/commit/169b04e1603f27a01e93e5c9d53ec49467672ef6) | Byte-identical v2 source snapshot; upstream [migration PR](https://github.com/Angel-M-R/opencode-open-in-app/pull/1) |
 | Subagent monitor | [Alanhiram75/sub-agent-statusline](https://github.com/Alanhiram75/sub-agent-statusline/tree/a585b0923a0c1382bba69c14f78d733eee6a3d44) | Pinned v2 port; local import layout |
-| cmux hooks | Files embedded in the original Angel AI base | Native events/permissions/forms, standalone launch restoration, cleanup |
 
 Claude auth is installed from npm at the exact version
 `opencode-claude-auth-v2@0.4.0-beta.5`, from
