@@ -55,6 +55,82 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual(memory.read_text(), 'preserve user data')
         self.assertEqual(retire.plan(self.root), {})
 
+    def test_dependency_sections_remove_only_registered_retired_packages(self):
+        kept = {'notion': '1', 'railway': '1', 'supabase': '1', 'openspec-helper': '1',
+                '@other/opencode-sdd-engram-manage': '1', 'opencode-sdd-engram-manage-helper': '1'}
+        fields = ('dependencies', 'devDependencies', 'optionalDependencies')
+        self.write('package.json', {field: {**kept, **{package: '1' for package in retire.PACKAGES}}
+                                    for field in fields})
+        retire.apply(self.root, retire.plan(self.root), self.backups)
+        self.assertEqual(json.loads((self.root / 'package.json').read_text()), {field: kept for field in fields})
+        self.assertEqual(retire.plan(self.root), {})
+
+    def test_package_named_assets_and_versioned_patches_are_removed(self):
+        retired = ['patches/opencode-sdd-engram-manage.patch',
+                   'patches/opencode-sdd-engram-manage@1.2.3.patch',
+                   'plugins/opencode-openspec-task-tui.js']
+        for name in retired:
+            self.write(name, 'retired asset')
+        kept = self.write('patches/opencode-sdd-engram-manage-helper.patch', 'unrelated')
+        backup = retire.apply(self.root, retire.plan(self.root), self.backups)
+        for name in retired:
+            self.assertFalse((self.root / name).exists())
+            self.assertEqual((backup / 'config' / name).read_text(), 'retired asset')
+        self.assertEqual(kept.read_text(), 'unrelated')
+
+    def test_patch_references_preserve_shared_external_and_non_patch_files(self):
+        old = self.write('patches/old.patch', 'retired patch')
+        shared = self.write('patches/opencode-sdd-engram-manage.patch', 'shared patch')
+        outside = self.base / 'external.patch'
+        outside.write_text('external patch')
+        config = self.write('custom.json', 'unrelated configuration')
+        self.write('package.json', {'patchedDependencies': {
+            'opencode-sdd-engram-manage@1': 'patches/old.patch',
+            'opencode-sdd-engram-manage@2': 'patches/opencode-sdd-engram-manage.patch',
+            'opencode-openspec-task-tui@1': '../external.patch',
+            'opencode-openspec-task-tui@2': 'custom.json',
+            'kept@1': './patches/opencode-sdd-engram-manage.patch',
+        }})
+        self.write('.angel-ai-state.json', {
+            'selection': {'extras': {}, 'categories': []},
+            'files': [{'path': 'patches/old.patch', 'digest': 'old'},
+                      {'path': 'patches/opencode-sdd-engram-manage.patch', 'digest': 'kept'}]})
+        backup = retire.apply(self.root, retire.plan(self.root), self.backups)
+        self.assertFalse(old.exists())
+        self.assertEqual((backup / 'config/patches/old.patch').read_text(), 'retired patch')
+        self.assertEqual(shared.read_text(), 'shared patch')
+        self.assertEqual(outside.read_text(), 'external patch')
+        self.assertEqual(config.read_text(), 'unrelated configuration')
+        self.assertEqual(json.loads((self.root / 'package.json').read_text())['patchedDependencies'],
+                         {'kept@1': './patches/opencode-sdd-engram-manage.patch'})
+        self.assertEqual(json.loads((self.root / '.angel-ai-state.json').read_text())['files'],
+                         [{'path': 'patches/opencode-sdd-engram-manage.patch', 'digest': 'kept'}])
+        self.assertEqual(retire.plan(self.root), {})
+
+    def test_retired_directory_with_a_retained_patch_requires_manual_resolution(self):
+        nested = self.write('tui-plugins/sdd-engram/shared.patch', 'shared bytes')
+        manifest = self.write('package.json', {'patchedDependencies': {'kept@1': 'tui-plugins/sdd-engram/shared.patch'}})
+        before = manifest.read_bytes()
+        with self.assertRaisesRegex(ValueError, 'still used'):
+            retire.plan(self.root)
+        self.assertEqual(manifest.read_bytes(), before)
+        self.assertEqual(nested.read_text(), 'shared bytes')
+        self.assertFalse(self.backups.exists())
+
+    def test_rollback_restores_nested_dependencies_in_removed_directories(self):
+        dependency = self.write('tui-plugins/sdd-engram/node_modules/nested/node_modules/deep/index.js', 'installed bytes')
+        self.write('tui-plugins/sdd-engram/tui.tsx', 'old UI')
+        cache = self.write('node_modules/kept/index.js', 'unrelated cache')
+        with patch.object(Path, 'write_bytes', side_effect=OSError('manifest failure')):
+            with self.assertRaisesRegex(OSError, 'manifest'):
+                retire.apply(self.root, retire.plan(self.root), self.backups)
+        self.assertEqual(dependency.read_text(), 'installed bytes')
+        self.assertEqual((self.root / 'tui-plugins/sdd-engram/tui.tsx').read_text(), 'old UI')
+        self.assertEqual(cache.read_text(), 'unrelated cache')
+        backup = next(self.backups.iterdir())
+        self.assertEqual((backup / 'config' / dependency.relative_to(self.root)).read_text(), 'installed bytes')
+        self.assertFalse((backup / 'config/node_modules').exists())
+
     def test_native_descriptors_preserve_options(self):
         kept = {'package': './tui-plugins/open-in-app', 'options': {'favorite': 'code'}}
         self.write('cli.json', {'plugins': [{'package': 'opencode-sdd-engram-manage', 'options': {}}, kept]})

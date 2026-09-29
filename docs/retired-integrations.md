@@ -1,9 +1,7 @@
 # Retire the OpenCode 1 integrations
 
-The second PR in the migration stack removes Engram, SDD profiles, OpenSpec,
-Notion, Supabase, Railway and CodeGraph. Merge the OpenCode 2 migration first.
-This branch is based on that migration, so its PR shows only the cleanup.
-After merging the parent, retarget this PR to `main` if GitHub has not done so.
+This cleanup removes Engram, SDD profiles, OpenSpec, Notion, Supabase, Railway
+and CodeGraph. It builds on the OpenCode 2 migration already merged into `main`.
 
 The installer no longer ships their plugins, agents, CLI installers or workflow
 commands. The orchestrator keeps interviews, a confirmed Brief, bounded `general`
@@ -26,16 +24,21 @@ Use `--target /path/to/config` for a different installation. Preview is the
 default. All JSON inputs are validated before writing. JSONC files require conversion
 to JSON first; the tool stops instead of editing them incompletely. The command removes
 recognized retired MCP/agent/plugin entries from `opencode.json`, `cli.json`
-and legacy `tui.json`, removes their package dependencies and local patches,
+and legacy `tui.json`, removes their known package dependencies, including optional
+dependencies, and local `.patch` files owned only by retired packages,
 and archives their installed hooks, UI directories, worker prompts and skills.
 It also removes the managed CodeGraph guidance block, installs the revised
 orchestrator and product interview skill, and drops retired inventory selections.
 Shared skill symlinks are replaced locally; their external targets are untouched.
-Unknown integrations and permissions are preserved. Custom copies of replaced
-prompts remain in the backup.
+Patch files outside the configuration directory or still referenced by retained
+packages are preserved. If such a patch lives inside a directory being retired,
+move it and update its registration before cleanup. Unknown integrations and
+permissions are preserved. Custom copies of replaced prompts remain in the backup.
 
-The command makes a private full configuration snapshot (excluding `node_modules`)
-under `~/.local/state/angel-ai/backups/retired-*` before any edit. A write failure
+The command makes a private configuration snapshot before editing. It includes
+nested `node_modules` inside directories being removed, so rollback restores them
+completely, and excludes unrelated dependency caches. Backups are stored
+under `~/.local/state/angel-ai/backups/retired-*`. A write failure
 restores edited paths. Successful repeated runs make no changes or new backups.
 It preserves pre-existing inventory drift instead of silently accepting it;
 `doctor` may still report changes from the earlier v2 migration. Review a wizard

@@ -20,11 +20,32 @@ def retired_name(name):
     return name.lower() in RETIRED or name.lower().startswith(('openspec-', 'sdd-'))
 
 
+def retired_package(name):
+    return any(name == package or name.startswith(package + '@') for package in PACKAGES)
+
+
 def retired_path(value):
-    return any(retired_name(part) or part in PACKAGES or
-               part.split('@')[0] in PACKAGES or
-               part in {'engram.ts', 'engram.js', 'sdd-engram-manage.ts', 'sdd-badge-patch.test.ts'}
-               for part in Path(value).parts)
+    def retired_part(part):
+        suffix = Path(part).suffix
+        asset_name = part[:-len(suffix)] if suffix in {'.patch', '.ts', '.tsx', '.js', '.mjs', '.cjs'} else part
+        return (retired_name(part) or retired_package(asset_name) or
+                part in {'engram.ts', 'engram.js', 'sdd-engram-manage.ts', 'sdd-badge-patch.test.ts'})
+    return any(retired_part(part) for part in Path(value).parts)
+
+
+def local_patch(root, value):
+    if not isinstance(value, str):
+        raise ValueError('patchedDependencies values must be file paths')
+    path = Path(os.path.abspath(root / value))
+    try:
+        name = path.relative_to(root)
+        path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return None
+    # Follow only local patch artifacts, never arbitrary config files or directories.
+    if path.suffix != '.patch' or not path.is_file():
+        return None
+    return str(name)
 
 
 def default_config_dir():
@@ -57,6 +78,7 @@ def encoded(value):
 def plan(root):
     """Validate every input before returning path -> bytes/None (remove) edits."""
     edits = {}
+    retired_patches, retained_patches = set(), set()
     for filename in ('opencode.jsonc', 'cli.jsonc', 'tui.jsonc'):
         if (root / filename).exists():
             raise ValueError(f'{filename}: convert to JSON before cleanup')
@@ -78,13 +100,23 @@ def plan(root):
                 if not isinstance(data[field], list):
                     raise ValueError(f'{filename}.{field}: expected array')
                 data[field] = [v for v in data[field] if not retired_plugin(v)]
-        for field in ('dependencies', 'devDependencies', 'patchedDependencies'):
+        for field in ('dependencies', 'devDependencies', 'optionalDependencies', 'patchedDependencies'):
             if field in data:
                 if not isinstance(data[field], dict):
                     raise ValueError(f'{filename}.{field}: expected object')
-                data[field] = {k: v for k, v in data[field].items() if not retired_path(k)}
+                if field == 'patchedDependencies':
+                    for package, value in data[field].items():
+                        name = local_patch(root, value)
+                        if name is not None:
+                            (retired_patches if retired_package(package) else retained_patches).add(name)
+                data[field] = {k: v for k, v in data[field].items() if not retired_package(k)}
         if encoded(data) != original:
             edits[filename] = encoded(data)
+
+    retained_patch_targets = {(root / name).resolve() for name in retained_patches}
+    for name in sorted(retired_patches):
+        if (root / name).resolve() not in retained_patch_targets:
+            edits[name] = None
 
     for folder in ('agents', 'skills', 'plugins', 'tui-plugins', 'patches'):
         directory = root / folder
@@ -93,7 +125,7 @@ def plan(root):
         if directory.is_symlink():
             raise ValueError(f'{folder} is a symlink; choose its actual config directory')
         for path in directory.iterdir():
-            if '.bak-' in path.name:
+            if '.bak-' in path.name or path.resolve() in retained_patch_targets:
                 continue
             if retired_path(path.name) or retired_name(path.stem):
                 edits[str(path.relative_to(root))] = None
@@ -119,6 +151,11 @@ def plan(root):
                     edits[str(parent.relative_to(root))] = None
                 edits[name] = source
 
+    for name, content in edits.items():
+        removed = (root / name).resolve()
+        if content is None and any(target == removed or removed in target.parents for target in retained_patch_targets):
+            raise ValueError(f'{name} contains a patch still used by a retained package')
+
     state_path = root / '.angel-ai-state.json'
     if state_path.exists():
         state = read_json(state_path)
@@ -131,7 +168,10 @@ def plan(root):
         records = []
         for record in state['files']:
             name = record['path']
-            if retired_path(name) or retired_name(Path(name).stem):
+            preserved_patch = (root / name).resolve() in retained_patch_targets
+            if ((not preserved_patch and (retired_path(name) or retired_name(Path(name).stem))) or
+                    any(content is None and (name == removed or name.startswith(removed + '/'))
+                        for removed, content in edits.items())):
                 continue
             if name in edits and edits[name] is not None:
                 path = root / name
@@ -168,7 +208,16 @@ def apply(root, edits, backup_root):
     backup_root.mkdir(parents=True, exist_ok=True, mode=0o700)
     backup = Path(tempfile.mkdtemp(prefix='retired-' + datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S-'), dir=backup_root))
     snapshot = backup / 'config'
-    shutil.copytree(root, snapshot, symlinks=True, ignore=shutil.ignore_patterns('node_modules'))
+    removed_directories = [root / name for name, content in edits.items()
+                           if content is None and (root / name).is_dir() and not (root / name).is_symlink()]
+    def ignore_dependencies(directory, names):
+        current = Path(directory)
+        # Removed directories must be restorable byte-for-byte, including their
+        # nested dependencies. Unrelated install caches need not be copied.
+        if any(current == removed or removed in current.parents for removed in removed_directories):
+            return []
+        return ['node_modules'] if 'node_modules' in names else []
+    shutil.copytree(root, snapshot, symlinks=True, ignore=ignore_dependencies)
     # Record existence before any parent symlinks are removed.
     originals = {name: os.path.lexists(root / name) for name in edits}
     changed = []

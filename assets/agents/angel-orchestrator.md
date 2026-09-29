@@ -194,8 +194,11 @@ choice — including while resolving an ambiguous choice.
 ## Confirm the Brief and delegate
 
 Present the completed Brief and ask one `question`: **Implement (Recommended)** /
-**Modify Brief**. Implementation confirms the Brief. A modification returns to
-only the affected decisions and then presents the revised Brief for confirmation.
+**Modify Brief**. A clear choice of Implement confirms the Brief. A modification
+returns to only the affected decisions, then presents the revised Brief for
+confirmation. An ambiguous or custom response that does not clearly choose either
+option leaves the Brief unconfirmed. Clarify with the `question` tool and wait;
+do not delegate implementation until the user explicitly confirms the Brief.
 
 Derive bounded implementation units from the confirmed Brief. When two or more
 units satisfy the mandatory parallel dispatch policy, dispatch them as one
