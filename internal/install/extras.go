@@ -24,6 +24,8 @@ type ExtraOption struct {
 // catalog, these are hardcoded because each one requires behavior that plain
 // file scanning cannot express.
 var ExtraOptions = []ExtraOption{
+	{Key: "engram-plugin", Label: "Engram memory hooks", Description: "Adaptador OpenCode v2 para Engram 1.20 existente"},
+	{Key: "sdd-engram", Label: "SDD profiles and memories", Description: "Gestor de perfiles y memorias adaptado a OpenCode v2"},
 	{
 		Key:             codegraphOptionKey,
 		Label:           "CodeGraph",
@@ -45,31 +47,31 @@ var ExtraOptions = []ExtraOption{
 	{
 		Key:             "angel-logo",
 		Label:           "Logo Angel AI",
-		Description:     "ASCII logo propio + estado de los MCP en el footer de la TUI",
+		Description:     "ASCII logo propio + estado de los MCP en el pie de la TUI v2",
 		DefaultSelected: true,
 	},
 	{
 		Key:             "theme",
 		Label:           "Tema one-dark-pro",
-		Description:     "Activa one-dark-pro como tema de la TUI (tui.json)",
+		Description:     "Activa one-dark-pro como tema de la TUI (cli.json)",
 		DefaultSelected: true,
 	},
 	{
 		Key:             "subagent-statusline",
 		Label:           "Subagent statusline",
-		Description:     "Plugin de terceros (npm): actividad de los workers en la sidebar",
+		Description:     "Plugin v2: actividad de los workers en la sidebar",
 		DefaultSelected: true,
 	},
 	{
 		Key:             openInAppOptionKey,
 		Label:           "Open in App",
-		Description:     "Plugin npm: abre archivos y recursos en sus aplicaciones nativas",
+		Description:     "Plugin v2: abre archivos y recursos en sus aplicaciones nativas",
 		DefaultSelected: true,
 	},
 	{
 		Key:             openSpecTaskTUIOptionKey,
 		Label:           "OpenSpec task TUI",
-		Description:     "Plugin npm: muestra el progreso de tareas de OpenSpec en la sidebar",
+		Description:     "Plugin v2: muestra el progreso de tareas de OpenSpec en la sidebar",
 		DefaultSelected: true,
 	},
 	{
@@ -80,7 +82,13 @@ var ExtraOptions = []ExtraOption{
 	},
 }
 
-var angelLogoFiles = []string{"angel-logo.tsx", "mcp-footer-state.ts"}
+var uiPlugins = []struct{ option, identity, directory string }{
+	{"angel-logo", "angel-logo", "angel-logo"},
+	{"sdd-engram", "opencode-sdd-engram-manage", "sdd-engram"},
+	{"subagent-statusline", "opencode-subagent-statusline", "subagent-statusline"},
+	{openInAppOptionKey, "opencode-open-in-app", "open-in-app"},
+	{openSpecTaskTUIOptionKey, "opencode-openspec-task-tui", "openspec-tasks"},
+}
 var cmuxPluginFiles = []string{"cmux-session.js", "cmux-feed.js"}
 
 type executableLookup func(string) (string, error)

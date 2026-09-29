@@ -1,7 +1,7 @@
 // cmux-feed-plugin-marker v1
 // Bridges OpenCode's plugin event bus to the cmux socket's feed.* verbs.
 // Installed by `cmux hooks setup` or `cmux hooks opencode install`.
-// DO NOT EDIT MANUALLY - cmux upgrades this file in place.
+// Angel AI port for OpenCode v2. Use --standalone inside cmux.
 
 const net = require("node:net");
 const os = require("node:os");
@@ -17,6 +17,7 @@ export const CMUXFeed = async (ctx) => {
   let client = null;
   let buffered = "";
   const pending = new Map();
+  const pendingTimers = new Map();
   const messageRoles = new Map();
   const sessions = new Map();
 
@@ -225,7 +226,7 @@ export const CMUXFeed = async (ctx) => {
 
   const questionAnswers = (selections) => {
     if (!Array.isArray(selections) || selections.length === 0) return [[]];
-    return selections.map((selection) => [String(selection)]);
+    return selections.map((selection) => Array.isArray(selection) ? selection.map(String) : [String(selection)]);
   };
 
   const resolveSessionPlanPath = (sid, rawPlanPath) => {
@@ -337,6 +338,8 @@ export const CMUXFeed = async (ctx) => {
     if (!requestId || !pending.has(requestId)) return;
     const resolver = pending.get(requestId);
     pending.delete(requestId);
+    clearTimeout(pendingTimers.get(requestId));
+    pendingTimers.delete(requestId);
     resolver(value);
   };
 
@@ -461,12 +464,11 @@ export const CMUXFeed = async (ctx) => {
   const pushBlocking = (event, requestId) => {
     const reply = new Promise((resolve) => {
       pending.set(requestId, resolve);
-      setTimeout(() => {
-        if (pending.has(requestId)) {
-          pending.delete(requestId);
-          resolve({ status: "timed_out" });
-        }
+      const timer = setTimeout(() => {
+        resolvePending(requestId, { status: "timed_out" });
       }, REPLY_TIMEOUT_MS);
+      timer.unref?.();
+      pendingTimers.set(requestId, timer);
     });
     const wrote = write({
       id: `opencode-${requestId}`,
@@ -488,6 +490,8 @@ export const CMUXFeed = async (ctx) => {
   };
 
   return {
+    dispose() { client?.destroy(); failPending(); },
+    cancelPending(requestID) { resolvePending(requestID, { status: "cancelled" }); },
     event: async ({ event }) => {
       const tracked = trackMessage(event);
       if (tracked) {
@@ -635,3 +639,100 @@ export const CMUXFeed = async (ctx) => {
     },
   };
 };
+
+export default {
+  id: "angel.cmux.feed",
+  async setup(context) {
+    if (!process.env.CMUX_SURFACE_ID || process.env.CMUX_OPENCODE_HOOKS_DISABLED === "1") return;
+    const forms = new Map();
+    const hooks = await CMUXFeed({
+      directory: context.location.directory,
+      client: {
+        session: { update: ({ path, body }) => context.session.update({
+          sessionID: path.id,
+          permissions: body.permission.map(rule => ({ action: rule.permission, resource: rule.pattern, effect: rule.action })),
+        }) },
+        permission: { reply: ({ requestID, reply, message }) => {
+          const request = requests.get(requestID);
+          if (!request) throw new Error("Permission request is no longer active");
+          return context.permission.reply({ sessionID: request.sessionID, requestID, decision: reply, message });
+        } },
+        question: {
+          reply: ({ requestID, answers }) => {
+            const form = forms.get(requestID);
+            if (!form) throw new Error("Form is no longer active");
+            const answer = Object.fromEntries(form.fields.map((field, i) => {
+              const values = (answers[i] ?? []).map(value => field.options?.find(option => option.value === value || option.label === value)?.value ?? value);
+              return [field.key, field.type === "multiselect" ? values : (values[0] ?? "")];
+            }));
+            return context.session.form.reply({ sessionID: form.sessionID, formID: requestID, answer });
+          },
+          reject: ({ requestID }) => {
+            const form = forms.get(requestID);
+            if (!form) return;
+            return context.session.form.cancel({ sessionID: form.sessionID, formID: requestID });
+          },
+        },
+      },
+    });
+    const requests = new Map();
+    const controller = new AbortController();
+    const deliver = async event => {
+      if (event.type === "permission.replied") { hooks.cancelPending(event.data.requestID); requests.delete(event.data.requestID); return; }
+      if (event.type === "form.replied" || event.type === "form.cancelled") { hooks.cancelPending(event.data.id); forms.delete(event.data.id); return; }
+      if (event.type === "permission.asked") requests.set(event.data.id, event.data);
+      if (event.type === "form.created") {
+        const form = event.data.form;
+        // Rich/conditional forms keep their native OpenCode UI.
+        if (form.fields.some(f => !["string", "multiselect"].includes(f.type) || f.hidden || f.when)) return;
+        forms.set(form.id, form);
+        try {
+          await hooks.event({ event: { type: "question.asked", properties: {
+            id: form.id, sessionID: form.sessionID,
+            questions: form.fields.map(f => ({ id: f.key, header: f.title,
+              question: f.description || f.title || form.title, multiple: f.type === "multiselect",
+              options: (f.options || []).map(o => ({ id: o.value, label: o.label || o.value })),
+            })),
+          } } });
+        } finally { forms.delete(form.id); }
+        return;
+      }
+      for (const translated of v2Events(event)) await hooks.event({ event: translated });
+    };
+    void (async () => {
+      for await (const event of context.event.subscribe({ signal: controller.signal })) {
+        if (event.location?.directory !== context.location.directory) continue;
+        // A blocking Feed question must not block replies/cancellations from OpenCode.
+        void deliver(event).catch(error => console.warn("cmux Feed event failed", String(error)));
+      }
+    })().catch(error => { if (!controller.signal.aborted) console.warn("cmux Feed subscription stopped", String(error)); });
+    return () => { controller.abort(); hooks.dispose(); forms.clear(); requests.clear(); };
+  },
+};
+
+function v2Events(event) {
+  const data = event.data || {};
+  const directory = event.location?.directory;
+  if (event.type === "session.created" || event.type === "session.deleted") {
+    return [{ type: event.type, properties: { info: { ...data, id: data.sessionID, directory } } }];
+  }
+  if (event.type === "session.idle" || event.type === "session.status") {
+    return [{ type: event.type === "session.status" && data.status?.type === "idle" ? "session.idle" : event.type, properties: data }];
+  }
+  if (event.type === "permission.asked") {
+    return [{ type: event.type, properties: { ...data, permission: data.action, patterns: data.resources, always: data.save } }];
+  }
+  if (event.type === "session.inbox.enqueued" && data.item?.type === "user") {
+    return [
+      { type: "message.updated", properties: { info: { id: data.inboxID, sessionID: data.sessionID, role: "user" } } },
+      { type: "message.part.updated", properties: { part: { type: "text", messageID: data.inboxID, text: data.item.payload.text } } },
+    ];
+  }
+  if (event.type === "session.text.ended") {
+    return [
+      { type: "message.updated", properties: { info: { id: data.messageID, sessionID: data.sessionID, role: "assistant" } } },
+      { type: "message.part.updated", properties: { part: { type: "text", messageID: data.messageID, text: data.text } } },
+    ];
+  }
+  return [];
+}

@@ -3,6 +3,6 @@
   "default_agent": "angel-orchestrator",
   "share": "disabled",
   "plugin": [
-    "opencode-claude-auth@latest"
+    "opencode-claude-auth-v2@0.4.0-beta.5"
   ]
 }

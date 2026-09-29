@@ -2,7 +2,7 @@
 
 set -eu
 
-manifest_base_url="https://github.com/Angel-M-R/angel-ai-opencode/releases/latest/download"
+manifest_base_url="https://github.com/Angel-M-R/angel-ai-opencode-2/releases/latest/download"
 supported_platforms="Darwin/arm64, Linux/amd64, and Linux/arm64"
 install_dir="$HOME/.local/bin"
 install_path="$install_dir/angel-ai"

@@ -1,7 +1,7 @@
 // cmux-opencode-session-plugin-marker v1
 // Bridges OpenCode session lifecycle events into cmux's restorable session store.
 // Installed by `cmux hooks opencode install` or `cmux hooks setup`.
-// DO NOT EDIT MANUALLY. cmux upgrades this file in place.
+// Angel AI port for OpenCode v2. Use --standalone inside cmux.
 
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -140,18 +140,10 @@ function withoutOpenCodeInternalWorkerArgs(argv) {
   return result.length > 0 ? result : [resolveExecutable("opencode")];
 }
 
-function normalizedLaunchArgv() {
-  const raw = Array.isArray(process.argv) ? process.argv.map((value) => String(value)) : [];
-  if (raw.length === 0) return [resolveExecutable("opencode")];
-
-  const firstBase = path.basename(raw[0]).toLowerCase();
-  if (looksLikeOpenCodeScript(firstBase)) return withoutOpenCodeInternalWorkerArgs(raw);
-
-  let tail = raw.slice(1);
-  if (tail.length > 0 && looksLikeOpenCodeScript(tail[0])) {
-    tail = tail.slice(1);
-  }
-  return withoutOpenCodeInternalWorkerArgs([resolveExecutable("opencode"), ...tail]);
+export function normalizedLaunchArgv() {
+  // v2 server argv can contain `serve --service`; restoring it would not open a TUI.
+  // A standalone server inherits the cmux surface for hooks and Feed events.
+  return [resolveExecutable("opencode"), "--standalone"];
 }
 
 function base64NulSeparated(values) {
@@ -277,4 +269,44 @@ const CMUXSessionRestore = async (ctx) => {
 };
 
 export { CMUXSessionRestore };
-export default CMUXSessionRestore;
+export default {
+  id: "angel.cmux.session",
+  async setup(context) {
+    if (!process.env.CMUX_SURFACE_ID || process.env.CMUX_OPENCODE_HOOKS_DISABLED === "1") return;
+    const hooks = await CMUXSessionRestore({ directory: context.location.directory });
+    const controller = new AbortController();
+    void (async () => {
+      for await (const event of context.event.subscribe({ signal: controller.signal })) {
+        if (event.location?.directory !== context.location.directory) continue;
+        for (const translated of v2Events(event)) await hooks.event?.({ event: translated });
+      }
+    })().catch(error => { if (!controller.signal.aborted) console.warn("cmux session subscription stopped", String(error)); });
+    return () => { controller.abort(); delete globalThis[CMUX_PLUGIN_INSTALLED_KEY]; sessions.clear(); messageRoles.clear(); };
+  },
+};
+function v2Events(event) {
+  const data = event.data || {};
+  const directory = event.location?.directory;
+  if (event.type === "session.created" || event.type === "session.deleted") {
+    return [{ type: event.type, properties: { info: { ...data, id: data.sessionID, directory } } }];
+  }
+  if (event.type === "session.idle" || event.type === "session.status") {
+    return [{ type: event.type, properties: data }];
+  }
+  if (event.type === "permission.asked") {
+    return [{ type: event.type, properties: { ...data, permission: data.action, patterns: data.resources, always: data.save } }];
+  }
+  if (event.type === "session.inbox.enqueued" && data.item?.type === "user") {
+    return [
+      { type: "message.updated", properties: { info: { id: data.inboxID, sessionID: data.sessionID, role: "user" } } },
+      { type: "message.part.updated", properties: { part: { type: "text", messageID: data.inboxID, text: data.item.payload.text } } },
+    ];
+  }
+  if (event.type === "session.text.ended") {
+    return [
+      { type: "message.updated", properties: { info: { id: data.messageID, sessionID: data.sessionID, role: "assistant" } } },
+      { type: "message.part.updated", properties: { part: { type: "text", messageID: data.messageID, text: data.text } } },
+    ];
+  }
+  return [];
+}

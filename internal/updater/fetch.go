@@ -23,7 +23,7 @@ const (
 // API. Every release publishes one manifest per supported platform so a
 // self-update never downloads an artifact built for another platform.
 func LatestManifestURL() string {
-	return fmt.Sprintf("https://github.com/Angel-M-R/angel-ai-opencode/releases/latest/download/manifest-%s-%s.json", runtime.GOOS, runtime.GOARCH)
+	return fmt.Sprintf("https://github.com/Angel-M-R/angel-ai-opencode-2/releases/latest/download/manifest-%s-%s.json", runtime.GOOS, runtime.GOARCH)
 }
 
 // HTTPClient is the network seam used for deterministic manifest tests.

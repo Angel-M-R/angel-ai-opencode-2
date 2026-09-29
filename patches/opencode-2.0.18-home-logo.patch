@@ -1,0 +1,49 @@
+diff --git a/packages/plugin/src/tui/context.ts b/packages/plugin/src/tui/context.ts
+index f2c5792..f4965a7 100644
+--- a/packages/plugin/src/tui/context.ts
++++ b/packages/plugin/src/tui/context.ts
+@@ -190,6 +190,7 @@ export interface PanelInput {
+  */
+ export interface SlotMap {
+   readonly app: Readonly<Record<string, never>>
++  readonly "home.logo": Readonly<Record<string, never>>
+   readonly "home.footer": Readonly<Record<string, never>>
+   readonly "home.footer.status": Readonly<Record<string, never>>
+   readonly "prompt.footer": PromptFooterInput
+@@ -262,6 +263,8 @@ export type SlotClaim<Path extends SlotPath = SlotPath> = Path extends SlotPath
+   : never
+ 
+ export interface App {
++  /** Angel AI build: supports replacing the logo above the home prompt. */
++  readonly angelHomeLogo?: true
+   readonly version: string
+   readonly channel: string
+ }
+diff --git a/packages/tui/src/plugin/api.tsx b/packages/tui/src/plugin/api.tsx
+index 9895b1f..435cd53 100644
+--- a/packages/tui/src/plugin/api.tsx
++++ b/packages/tui/src/plugin/api.tsx
+@@ -138,7 +138,7 @@ export function createPluginContext(input: {
+     get location() {
+       return host.location.current
+     },
+-    app: { version: host.app.version, channel: host.app.channel },
++    app: { version: host.app.version, channel: host.app.channel, angelHomeLogo: true },
+     renderer: host.renderer,
+     client: host.client.api,
+     data: host.data,
+diff --git a/packages/tui/src/routes/home.tsx b/packages/tui/src/routes/home.tsx
+index 96af69b..b1fb250 100644
+--- a/packages/tui/src/routes/home.tsx
++++ b/packages/tui/src/routes/home.tsx
+@@ -93,7 +93,9 @@ export function Home() {
+             setLogoWidth(this.width)
+           }}
+         >
+-          <Logo />
++          <Slot path="home.logo">
++            <Logo />
++          </Slot>
+         </box>
+         <box height={1} flexShrink={0} />
+         <UpdateNotification width={logoWidth()} />

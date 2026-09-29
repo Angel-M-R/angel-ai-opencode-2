@@ -15,8 +15,9 @@ import (
 type pluginIdentityResolver func(any) string
 
 var tuiPluginLiteralIdentities = map[string]string{
-	"opencode-open-in-app":   "opencode-open-in-app",
-	"openspec-task-progress": "opencode-openspec-task-tui",
+	"opencode-open-in-app":       "opencode-open-in-app",
+	"openspec-task-progress":     "opencode-openspec-task-tui",
+	"opencode-sdd-engram-manage": "opencode-sdd-engram-manage",
 }
 
 type sourceToken struct {
@@ -102,7 +103,7 @@ func mergeWithPluginIdentity(dst, src map[string]any, resolveIdentity pluginIden
 			}
 			if dstArr, ok1 := existing.([]any); ok1 {
 				if srcArr, ok2 := value.([]any); ok2 {
-					if key == "plugin" {
+					if key == "plugin" || key == "plugins" {
 						dst[key] = mergePluginArrayWithIdentity(dstArr, srcArr, resolveIdentity)
 					} else {
 						dst[key] = srcArr
@@ -133,6 +134,16 @@ func mergePluginArrayWithIdentity(existing, desired []any, resolveIdentity plugi
 				continue
 			}
 			reconciled[identity] = true
+			if descriptor, ok := value.(map[string]any); ok {
+				if target, ok := replacement.(string); ok {
+					cloned := make(map[string]any, len(descriptor))
+					for key, value := range descriptor {
+						cloned[key] = value
+					}
+					cloned["package"] = target
+					replacement = cloned
+				}
+			}
 			result = append(result, replacement)
 		} else {
 			result = append(result, value)
@@ -148,8 +159,16 @@ func mergePluginArrayWithIdentity(existing, desired []any, resolveIdentity plugi
 	return result
 }
 
-func pluginIdentity(value any) string {
+func pluginSpec(value any) (string, bool) {
+	if descriptor, ok := value.(map[string]any); ok {
+		value = descriptor["package"]
+	}
 	text, ok := value.(string)
+	return text, ok
+}
+
+func pluginIdentity(value any) string {
+	text, ok := pluginSpec(value)
 	if !ok {
 		encoded, _ := json.Marshal(value)
 		return "json:" + string(encoded)
@@ -164,7 +183,14 @@ func pluginIdentity(value any) string {
 		return text
 	}
 	if version := strings.IndexByte(text, '@'); version >= 0 {
-		return text[:version]
+		identity := text[:version]
+		if identity == "opencode-claude-auth" {
+			return "opencode-claude-auth-v2"
+		}
+		return identity
+	}
+	if text == "opencode-claude-auth" {
+		return "opencode-claude-auth-v2"
 	}
 	return text
 }
@@ -172,7 +198,11 @@ func pluginIdentity(value any) string {
 func tuiPluginIdentityResolver(configDir string) pluginIdentityResolver {
 	return func(value any) string {
 		fallback := pluginIdentity(value)
-		entry, ok := value.(string)
+		// Descriptors identify packages, not arbitrary source-level exported IDs.
+		if _, descriptor := value.(map[string]any); descriptor {
+			return fallback
+		}
+		entry, ok := pluginSpec(value)
 		if !ok {
 			return fallback
 		}
@@ -375,4 +405,58 @@ func isRelativePluginPath(entry string) bool {
 		strings.HasPrefix(entry, `.\`) ||
 		strings.HasPrefix(entry, `..\`) ||
 		strings.ContainsAny(entry, `/\`)
+}
+
+// Only selected plugins are reconciled; unknown and deselected entries survive.
+func v2UIPluginIdentityResolver(configDir string, selected map[string]bool) pluginIdentityResolver {
+	legacy := tuiPluginIdentityResolver(configDir)
+	return func(value any) string {
+		entry, ok := pluginSpec(value)
+		if !ok {
+			return pluginIdentity(value)
+		}
+		identity := legacy(value)
+		for _, plugin := range uiPlugins {
+			if !selected[plugin.identity] {
+				continue
+			}
+			if identity == plugin.identity {
+				return identity
+			}
+			candidate, local := tuiPluginBundlePath(configDir, entry)
+			if local && localPluginPackageName(candidate) == plugin.identity {
+				return plugin.identity
+			}
+			if local && (candidate == filepath.Join(configDir, "tui-plugins", plugin.directory) ||
+				(plugin.identity == "angel-logo" && candidate == filepath.Join(configDir, "tui-plugins", "angel-logo.tsx")) ||
+				(plugin.identity == "opencode-sdd-engram-manage" && candidate == filepath.Join(configDir, "tui-plugins", "sdd-engram-manage.ts"))) {
+				return plugin.identity
+			}
+		}
+		return pluginIdentity(value)
+	}
+}
+
+// Bundled entrypoints often export a computed definition. Read their nearest
+// package manifest instead of executing a plugin or guessing from source text.
+func localPluginPackageName(file string) string {
+	start := filepath.Dir(file)
+	if info, err := os.Stat(file); err == nil && info.IsDir() {
+		start = file
+	}
+	for dir := start; ; dir = filepath.Dir(dir) {
+		raw, err := os.ReadFile(filepath.Join(dir, "package.json"))
+		if err == nil {
+			var manifest struct {
+				Name string `json:"name"`
+			}
+			if json.Unmarshal(raw, &manifest) == nil {
+				return manifest.Name
+			}
+			return ""
+		}
+		if !os.IsNotExist(err) || filepath.Dir(dir) == dir {
+			return ""
+		}
+	}
 }
