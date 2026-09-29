@@ -10,7 +10,7 @@ owned by this migration; they do not automatically track upstream branches.
 | OpenSpec tasks | [Angel-M-R/opencode-openspec-task-tui](https://github.com/Angel-M-R/opencode-openspec-task-tui) `b0bb42a62a24c2178da5c44d1531c8ff72e06591` | Native plugin, session location, theme and storage adapters |
 | Subagent monitor | [Alanhiram75/sub-agent-statusline](https://github.com/Alanhiram75/sub-agent-statusline/tree/a585b0923a0c1382bba69c14f78d733eee6a3d44) | Pinned v2 port; local import layout |
 | SDD/Engram UI | [OJPalenzuela/sdd-engram-plugin](https://github.com/OJPalenzuela/sdd-engram-plugin/tree/c7048a01c58bd7db52bcef4c736ae3bdf51416c0) | Config root, fail-closed atomic writes/backups, TSX runtime resolution, hide empty badge |
-| Engram server hooks | Installed Engram 1.20 OpenCode adapter, [Gentleman-Programming/engram](https://github.com/Gentleman-Programming/engram) | Native event/hook bridge, Node process calls, root-session checks, bounded prompt deduplication; retains legacy HTTP API |
+| Engram server hooks | Angel-authored native v2 bridge around the locally installed adapter, targeting the [Engram v1.20.0 API](https://github.com/Gentleman-Programming/engram/tree/v1.20.0); original installed adapter revision was not recorded | Native event/hook bridge, Node process calls, root-session checks, bounded prompt deduplication; retains legacy HTTP API |
 | cmux hooks | Files embedded in the original Angel AI base | Native events/permissions/forms, standalone launch restoration, cleanup |
 
 Claude auth is installed from npm at the exact version

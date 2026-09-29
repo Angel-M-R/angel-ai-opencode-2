@@ -227,7 +227,7 @@ export function createOpenSpecTaskTui(
         listGateway: dependencies.listGateway ?? createOpenSpecListGateway(),
         statusGateway: dependencies.statusGateway ?? createOpenSpecStatusGateway(),
       };
-      context.ui.slot({
+      return context.ui.slot({
         append: "sidebar.content",
         render: ({ sessionID }) => {
           const directory = () => context.data.session.get(sessionID)?.location.directory

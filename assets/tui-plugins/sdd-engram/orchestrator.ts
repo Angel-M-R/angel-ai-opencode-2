@@ -28,7 +28,7 @@ export function getOrchestratorPolicy(agentNames: string[], defaultAgent?: strin
 export function resolveCanonicalOrchestratorModel(models: Record<string, string>, policy: OrchestratorPolicy): string | undefined {
   for (const name of policy.aliasNames) {
     const value = models?.[name];
-    if (typeof value === "string" && value.trim()) return value;
+    if (typeof value === "string" && value.trim()) return value.trim();
   }
   return undefined;
 }
@@ -51,13 +51,14 @@ export function canonicalizeAgentConfig(agentConfig: Record<string, any>, policy
     policy
   );
 
+  const preferred = policy.aliasNames.map(name => next[name]).find(value => value && typeof value === "object");
   delete next[LEGACY_ORCHESTRATOR];
   delete next[UPDATED_ORCHESTRATOR];
 
-  if (canonicalModel) {
+  if (preferred || canonicalModel) {
     next[policy.canonicalName] = {
-      ...(next[policy.canonicalName] || {}),
-      model: canonicalModel,
+      ...(preferred || {}),
+      ...(canonicalModel ? { model: canonicalModel } : {}),
     };
   }
 

@@ -55,11 +55,21 @@ export async function runOpenSpecProcess(
   return result;
 }
 
+export function processCommand(request: ProcessRequest, platform = process.platform): { command: string; args: string[] } {
+  if (platform !== "win32") return { command: request.command, args: [...request.args] };
+  // Only the fixed CLI and shell-neutral list/status arguments reach cmd.exe.
+  if (request.command !== "openspec" || request.args.some(arg => !/^[A-Za-z0-9_-]+$/.test(arg))) {
+    throw new Error("Unsafe OpenSpec Windows arguments");
+  }
+  return { command: process.env.ComSpec || "cmd.exe", args: ["/d", "/s", "/c", ["openspec.cmd", ...request.args].join(" ")] };
+}
+
 const executeOpenSpecProcess: ProcessExecutor = (request) =>
   new Promise((resolve) => {
+    const launch = processCommand(request);
     execFile(
-      request.command,
-      [...request.args],
+      launch.command,
+      launch.args,
       {
         cwd: request.cwd,
         encoding: "utf8",

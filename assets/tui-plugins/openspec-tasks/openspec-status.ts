@@ -1,4 +1,5 @@
 import path from "node:path";
+import { realpathSync, lstatSync } from "node:fs";
 
 import { isValidChangeName } from "./change-name.js";
 import type { ActiveChange } from "./domain.js";
@@ -176,7 +177,20 @@ function validateResolvedStatus(
 
 function normalizeAbsolutePath(value: string): string | undefined {
   if (!path.isAbsolute(value) || value.includes("\0")) return undefined;
-  return path.resolve(value);
+  let ancestor = path.resolve(value);
+  const missing: string[] = [];
+  try {
+    for (;;) {
+      try { lstatSync(ancestor); break; }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") return undefined;
+        const parent = path.dirname(ancestor);
+        if (parent === ancestor) return undefined;
+        missing.unshift(path.basename(ancestor)); ancestor = parent;
+      }
+    }
+    return path.join(realpathSync(ancestor), ...missing);
+  } catch { return undefined; }
 }
 
 function isStrictlyWithin(candidate: string, root: string): boolean {

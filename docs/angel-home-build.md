@@ -30,8 +30,9 @@ The default source cache is `~/.cache/angel-ai/opencode-2.0.18`.
 The installer keeps both the original command entry, including relative symlinks,
 and a copy of the executable. It places the new binary under
 `~/.local/share/angel-ai/opencode/2.0.18-home1/` and changes the existing `opencode`
-command to point to its launcher. It does not replace the package manager's
-installed executable. `--command` and `--install-dir` support alternate locations.
+command entry to point to its launcher. If that entry is a regular executable,
+it is backed up and replaced; if it is a symlink, its package-manager target
+remains intact. `--command` and `--install-dir` support alternate locations.
 
 The displayed/protocol version stays 2.0.18 so the client can use the existing
 2.0.18 background service. This is a custom build, not an official release.

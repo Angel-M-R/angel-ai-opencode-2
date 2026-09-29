@@ -50,5 +50,38 @@ class HomeInstallerTest(unittest.TestCase):
             self.assertEqual(command.read_text(), "original")
             self.assertFalse((root / "install").exists())
 
+
+class HomeInstallerConflictTests(unittest.TestCase):
+    def test_reinstall_in_other_directory_preserves_original_backup_chain(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binary = root / 'patched'
+            binary.write_text('#!/bin/sh\nprintf "2.0.18\\n"\n')
+            binary.chmod(0o755)
+            command = root / 'opencode'
+            command.write_text('official')
+            args = [sys.executable, str(SCRIPT), str(binary), '--command', str(command), '--install-dir']
+            first = subprocess.run(args + [str(root / 'one')], capture_output=True)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            target = command.readlink()
+            second = subprocess.run(args + [str(root / 'two')], capture_output=True)
+            self.assertNotEqual(second.returncode, 0)
+            self.assertEqual(command.readlink(), target)
+            self.assertFalse((root / 'two').exists())
+            self.assertEqual(len(list(root.glob('backup-*'))), 1)
+
+    def test_install_directory_must_not_overlap_active_command(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binary = root / 'patched'
+            binary.write_text('#!/bin/sh\nprintf "2.0.18\\n"\n')
+            binary.chmod(0o755)
+            command = root / 'opencode'
+            command.write_text('official')
+            result = subprocess.run([sys.executable, str(SCRIPT), str(binary), '--command', str(command), '--install-dir', str(root)], capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(command.read_text(), 'official')
+            self.assertFalse(list(root.glob('backup-*')))
+
 if __name__ == "__main__":
     unittest.main()

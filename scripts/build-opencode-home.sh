@@ -7,7 +7,7 @@ revision=cd9a14a6b688d4021bee381dfd39d2cef9c0f862
 patch_file="$repo_dir/patches/opencode-2.0.18-home-logo.patch"
 output_dir="$repo_dir/.build/opencode"
 
-if [ ! -d "$source_dir/.git" ]; then
+if ! git -C "$source_dir" rev-parse --git-dir >/dev/null 2>&1; then
   mkdir -p "$source_dir"
   git -C "$source_dir" init
   git -C "$source_dir" remote add origin https://github.com/anomalyco/opencode.git
@@ -24,7 +24,10 @@ if git -C "$source_dir" diff --quiet HEAD; then
 else
   # Never reset a source checkout containing unrelated edits.
   actual_patch=$(mktemp)
-  trap 'rm -f "$actual_patch"' EXIT HUP INT TERM
+  trap 'rm -f "$actual_patch"' EXIT
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
   git -C "$source_dir" diff HEAD -- > "$actual_patch"
   if ! cmp -s "$actual_patch" "$patch_file"; then
     echo "Source contains edits other than the expected Angel patch." >&2

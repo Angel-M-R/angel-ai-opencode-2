@@ -1245,7 +1245,7 @@ function SddBadge(props: { context: Context; prefs: SddPrefs; sessionID?: string
 					{profile() ? "󰚩 " : "󱚧 "}
 				</text>
 				<text fg={base}>
-					{formatActiveModelBadgeText(profile(), props.prefs.displayMode)}
+					{formatActiveModelBadgeText(profile() ? { ...profile()!, profileName: props.prefs.activeProfileName } : null, props.prefs.displayMode)}
 				</text>
 			</box>
 		</Show>

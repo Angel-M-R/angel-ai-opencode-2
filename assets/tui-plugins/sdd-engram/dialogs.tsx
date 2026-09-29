@@ -27,7 +27,7 @@ import {
   isFallbackEligibleSddAgent,
   isPrimarySddAgent,
 } from "./utils";
-import { resolveEngramProjectName, resolvePaths, ensureProfilesDir, resolveProjectName } from "./config";
+import { resolveEngramProjectName, resolveProjectCandidates, resolvePaths, ensureProfilesDir } from "./config";
 import {
   listProfileFiles,
   readProfileData,
@@ -835,9 +835,13 @@ function showReasoningEffortPicker(api: any, profileOpt: any, agentName: string,
             return;
           }
 
-          const nextProfile = updateProfileReasoningEffort(profile, agentName, opt.value === "__clear__" ? "" : opt.value);
-          writeProfileData(profilePath, nextProfile, resolveRuntimeOrchestratorPolicy(api.state.config));
-          api.ui.toast({ title: "Updated", message: `${agentName} reasoning effort updated`, variant: "success" });
+          try {
+            const nextProfile = updateProfileReasoningEffort(profile, agentName, opt.value === "__clear__" ? "" : opt.value);
+            writeProfileData(profilePath, nextProfile, resolveRuntimeOrchestratorPolicy(api.state.config));
+            api.ui.toast({ title: "Updated", message: `${agentName} reasoning effort updated`, variant: "success" });
+          } catch (error) {
+            api.ui.toast({ title: "Error", message: String(error), variant: "error" });
+          }
           returnToProfileDetailTarget(api, profileOpt, returnTarget);
         }}
         onCancel={() => returnToProfileDetailTarget(api, profileOpt, returnTarget)}
@@ -1288,10 +1292,12 @@ function updateAgentModel(
  * @param api - The TUI API instance
  */
 export async function showProjectMemoriesMenu(api: any) {
-  const projectName = resolveEngramProjectName(api) || resolveProjectName(api) || "project";
+  const override = resolveEngramProjectName(api);
+  const candidates = override ? [override] : await resolveProjectCandidates(api);
+  const projectName = candidates[0] || "project";
 
   try {
-    const memories = await listProjectMemories(api);
+    const memories = await listProjectMemories(api, candidates);
 
     if (memories.length === 0) {
       api.ui.toast({

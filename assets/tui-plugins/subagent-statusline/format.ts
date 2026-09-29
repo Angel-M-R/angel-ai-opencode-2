@@ -9,7 +9,7 @@ import { deriveStatus, type V2Session } from "./reconcile.js";
 
 export const SIDEBAR_ROW_WIDTH = 34;
 export const LABEL_WIDTH = SIDEBAR_ROW_WIDTH - 5;
-export const LABEL_INDENT = "    ";
+export const LABEL_INDENT = "     ";
 
 // Nerd Font glyphs, same codepoints the V1 plugin used for the elapsed-time
 // and token markers (clock U+F017, coins U+F51E).
@@ -40,6 +40,7 @@ function formatNumber(value: number): string {
 export function resolveTokensTotal(session: V2Session): number | undefined {
   const tokens = session.tokens;
   if (!tokens) return undefined;
+  if (typeof tokens.total === "number") return Math.max(0, tokens.total);
   const input = tokens.input;
   const output = tokens.output;
   if (typeof input === "number" || typeof output === "number") {
@@ -80,7 +81,7 @@ export function labelFor(session: V2Session): string {
   const agent = typeof session.agent === "string" ? session.agent.trim() : "";
   const hasAgent = agent.length > 0 && agent !== "code";
   const mentionsAgent =
-    hasAgent && title.toLowerCase().includes(agent.toLowerCase());
+    hasAgent && title.toLowerCase().endsWith(`(${agent.toLowerCase()})`);
   if (title && hasAgent && !mentionsAgent) return `${title} (${agent})`;
   if (title) return title;
   return hasAgent ? agent : "subagent";

@@ -21,27 +21,27 @@ function isDebugEnabled(): boolean {
 export function createLogger(namespace: string): Logger {
   const prefix = `[sdd-plugin][${namespace}]`;
 
-  const emit = (message: string, args: unknown[]): void => {
+  const emit = (level: string, message: string, args: unknown[]): void => {
     if (args.length > 0) {
-      console.error(`${prefix} ${message}`, ...args);
+      console.error(`${prefix}[${level}] ${message}`, ...args);
     } else {
-      console.error(`${prefix} ${message}`);
+      console.error(`${prefix}[${level}] ${message}`);
     }
   };
 
   return {
     info(message, ...args) {
-      emit(message, args);
+      emit("info", message, args);
     },
     warn(message, ...args) {
-      emit(message, args);
+      emit("warn", message, args);
     },
     error(message, ...args) {
-      emit(message, args);
+      emit("error", message, args);
     },
     debug(message, ...args) {
       if (!isDebugEnabled()) return;
-      emit(message, args);
+      emit("debug", message, args);
     },
   };
 }

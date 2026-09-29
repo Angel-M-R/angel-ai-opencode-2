@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 
-export type ProcessFailureKind = "spawn" | "exit" | "timeout";
+export type ProcessFailureKind = "spawn" | "exit" | "timeout" | "output";
 
 export const PROCESS_MAX_BUFFER_BYTES = 1024 * 1024;
 
@@ -59,6 +59,7 @@ function classifyProcessFailure(
     readonly killed?: boolean;
   };
 
+  if (details.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER") return { kind: "output" };
   if (details.code === "ETIMEDOUT" || details.killed) {
     return { kind: "timeout" };
   }

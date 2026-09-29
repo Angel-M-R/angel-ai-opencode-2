@@ -248,7 +248,10 @@ const legacyHooks = async (ctx: { directory: string; session: Plugin.Context["se
   if (!running) {
     try {
       spawn(ENGRAM_BIN, ["serve"], { stdio: "ignore" }).on("error", () => {})
-      await new Promise((r) => setTimeout(r, 500))
+      for (let attempt = 0; attempt < 40; attempt++) {
+        if (await isEngramRunning()) break
+        await new Promise((resolve) => setTimeout(resolve, 250))
+      }
     } catch {
       // Binary not found or can't start — plugin will silently no-op
     }
@@ -356,7 +359,7 @@ const legacyHooks = async (ctx: { directory: string; session: Plugin.Context["se
           method: "POST",
           body: {
             session_id: sessionId,
-            content: stripPrivateTags(truncate(finalContent, 2000)),
+            content: truncate(stripPrivateTags(finalContent), 2000),
             project,
           },
         })
@@ -510,6 +513,8 @@ const legacyHooks = async (ctx: { directory: string; session: Plugin.Context["se
       if (input.sessionID) {
         await ensureSession(input.sessionID)
       }
+
+      if (!input.sessionID || !knownSessions.has(input.sessionID)) return
 
       // Inject context from previous sessions
       const data = await engramFetch(

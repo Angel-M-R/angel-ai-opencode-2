@@ -7,7 +7,9 @@
  * and project identification.
  */
 
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+const execFileAsync = promisify(execFile);
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -101,8 +103,8 @@ export function ensureProfilesDir(): void {
  * @param api - The TUI API instance
  * @returns The most likely project name or "unknown"
  */
-export function resolveProjectName(api: any): string {
-	return resolveProjectCandidates(api)[0] || "unknown";
+export async function resolveProjectName(api: any): Promise<string> {
+	return (await resolveProjectCandidates(api))[0] || "unknown";
 }
 
 /**
@@ -132,28 +134,26 @@ export function resolveEngramProjectName(api: any): string | null {
  * @param api - The TUI API instance
  * @returns Array of unique project name candidates
  */
-export function resolveProjectCandidates(api: any): string[] {
+export async function resolveProjectCandidates(api: any): Promise<string[]> {
 	const directory = api?.state?.path?.directory || process.cwd();
 	const candidates: string[] = [];
 
 	try {
-		const remote = execFileSync(
+		const remote = (await execFileAsync(
 			"git",
 			["-C", directory, "remote", "get-url", "origin"],
 			{
 				encoding: "utf-8",
 				timeout: 2000,
-				stdio: ["ignore", "pipe", "ignore"],
 			},
-		).trim();
+		)).stdout.trim();
 
 		if (remote) {
 			const repoName = remote
 				.replace(/\.git$/, "")
 				.split(/[/:]/)
 				.pop()
-				?.trim()
-				.toLowerCase();
+				?.trim();
 			if (repoName) candidates.push(repoName);
 		}
 	} catch (e) {
@@ -161,25 +161,24 @@ export function resolveProjectCandidates(api: any): string[] {
 	}
 
 	try {
-		const root = execFileSync(
+		const root = (await execFileAsync(
 			"git",
 			["-C", directory, "rev-parse", "--show-toplevel"],
 			{
 				encoding: "utf-8",
 				timeout: 2000,
-				stdio: ["ignore", "pipe", "ignore"],
 			},
-		).trim();
+		)).stdout.trim();
 
 		if (root) {
-			const rootName = path.basename(root)?.trim().toLowerCase();
+			const rootName = path.basename(root)?.trim();
 			if (rootName) candidates.push(rootName);
 		}
 	} catch (e) {
 		log.warn(`resolveProjectCandidates: failed to read git root for ${directory}`, e);
 	}
 
-	const dirName = path.basename(directory)?.trim().toLowerCase();
+	const dirName = path.basename(directory)?.trim();
 	if (dirName) candidates.push(dirName);
 
 	return [...new Set(candidates.filter(Boolean))];

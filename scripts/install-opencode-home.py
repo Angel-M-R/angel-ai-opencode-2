@@ -40,8 +40,10 @@ install_dir = args.install_dir.absolute()
 if not command.exists():
     parser.error("an existing opencode command is required so it can be backed up")
 launcher = install_dir / "opencode-angel"
-if command.is_symlink() and command.resolve() == launcher.resolve():
+if command.is_symlink() and (command.resolve() == launcher.resolve() or command.resolve().name == "opencode-angel"):
     parser.error("this build is already installed; restore the recorded backup before reinstalling")
+if command.resolve() in {(install_dir / "opencode").resolve(), launcher.resolve()}:
+    parser.error("install directory overlaps the active command; choose a separate directory")
 stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
 backup = install_dir.parent / ("backup-" + stamp)
 backup.mkdir(parents=True, mode=0o700)

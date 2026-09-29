@@ -33,6 +33,7 @@ export function parseTaskDocument(markdown: string): TaskDocument {
   let currentSection: SectionReference | undefined;
   let fallbackSection: SectionReference | undefined;
   let fence: Fence | undefined;
+  let comment = false;
 
   const createSectionReference = (label: string): SectionReference => {
     const normalizedLabel = normalizeSectionLabel(label);
@@ -62,12 +63,22 @@ export function parseTaskDocument(markdown: string): TaskDocument {
     currentSection.section.tasks.push(task);
   };
 
-  for (const line of markdown.split(/\r?\n/)) {
+  for (let line of markdown.split(/\r?\n/)) {
     if (fence) {
       if (closesFence(line, fence)) fence = undefined;
       continue;
     }
 
+    let visible = "";
+    while (line) {
+      const delimiter = comment ? "-->" : "<!--";
+      const offset = line.indexOf(delimiter);
+      if (offset < 0) { if (!comment) visible += line; break; }
+      if (!comment) visible += line.slice(0, offset);
+      line = line.slice(offset + delimiter.length);
+      comment = !comment;
+    }
+    line = visible;
     const fenceMatch = line.match(FENCE_PATTERN);
     if (fenceMatch) {
       const delimiter = fenceMatch[1];

@@ -16,11 +16,7 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	base := os.Getenv("XDG_CONFIG_HOME")
-	if base == "" {
-		base = filepath.Join(home, ".config")
-	}
-	target := flag.String("target", filepath.Join(base, "opencode"), "OpenCode config directory")
+	target := flag.String("target", defaultConfigDir(home), "OpenCode config directory")
 	source := flag.String("assets", "assets", "Angel v2 assets directory")
 	apply := flag.Bool("apply", false, "apply migration with timestamped backups; default is preview")
 	flag.Parse()
@@ -49,3 +45,14 @@ func main() {
 	}
 }
 func fail(err error) { fmt.Fprintln(os.Stderr, err); os.Exit(1) }
+
+func defaultConfigDir(home string) string {
+	if target := os.Getenv("OPENCODE_CONFIG_DIR"); target != "" {
+		return target
+	}
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		base = filepath.Join(home, ".config")
+	}
+	return filepath.Join(base, "opencode")
+}

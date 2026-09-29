@@ -39,6 +39,7 @@ const styles = {
 export function AngelHome(props: { context: Plugin.Context; classic?: boolean }) {
   const dimensions = useTerminalDimensions()
   const [timedOut, setTimedOut] = createSignal(false)
+  void props.context.data.location.mcp.server.sync(props.context.location).catch(() => setTimedOut(true))
   const timer = setTimeout(() => setTimedOut(true), 10_000)
   onCleanup(() => clearTimeout(timer))
   const state = createMemo(() => resolveMcpFooterState(
@@ -81,10 +82,11 @@ export function AngelHome(props: { context: Plugin.Context; classic?: boolean })
 export default Plugin.define({
   id: "angel-logo",
   setup(context) {
+    const releases: Array<(() => void) | undefined> = []
     if (context.app?.angelHomeLogo) {
-      context.ui.slot({ replace: "home.logo", render: () => <AngelHome context={context} classic /> })
+      releases.push(context.ui.slot({ replace: "home.logo", render: () => <AngelHome context={context} classic /> }))
     } else {
-      context.ui.slot({ before: "home.footer", render: () => <AngelHome context={context} /> })
+      releases.push(context.ui.slot({ before: "home.footer", render: () => <AngelHome context={context} /> }))
     }
     const Commands = () => {
       context.keymap.layer(() => ({ mode: "global", commands: [{
@@ -94,7 +96,8 @@ export default Plugin.define({
       }] }))
       return null
     }
-    context.ui.slot({ append: "home.footer.status", render: Commands })
-    context.ui.slot({ append: "sidebar.footer", render: Commands })
+    releases.push(context.ui.slot({ append: "home.footer.status", render: Commands }))
+    releases.push(context.ui.slot({ append: "sidebar.footer", render: Commands }))
+    return () => releases.forEach(release => release?.())
   },
 })

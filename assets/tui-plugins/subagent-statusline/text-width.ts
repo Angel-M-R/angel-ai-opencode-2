@@ -1,4 +1,10 @@
 const ELLIPSIS = "…";
+const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+function graphemes(value: string): string[] { return Array.from(segmenter.segment(value), part => part.segment); }
+function graphemeWidth(value: string): number {
+  if (/\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(value)) return 2;
+  return Math.max(0, ...Array.from(value, characterWidth));
+}
 
 function isCombiningCodePoint(codePoint: number): boolean {
   return (
@@ -46,7 +52,7 @@ function characterWidth(character: string): number {
 
 export function textColumns(value: string): number {
   let columns = 0;
-  for (const character of value) columns += characterWidth(character);
+  for (const character of graphemes(value)) columns += graphemeWidth(character);
   return columns;
 }
 
@@ -55,8 +61,8 @@ export function takeColumns(value: string, maxColumns: number): string {
 
   let columns = 0;
   let result = "";
-  for (const character of value) {
-    const width = characterWidth(character);
+  for (const character of graphemes(value)) {
+    const width = graphemeWidth(character);
     if (columns + width > maxColumns) break;
     columns += width;
     result += character;

@@ -46,17 +46,21 @@ export default Plugin.define({
         id: "opencode-open-in-app.open-project-root-with-favourite",
         title: "Open project in favourite app", bind: "alt+o", palette: true,
         slash: { name: "open-in-app" }, run: activate,
+      }, {
+        id: "opencode-open-in-app.choose", title: "Choose application for project",
+        palette: true, slash: { name: "open-in-app-choose" },
+        run: () => pick().catch(error => context.ui.toast.show({ variant: "error", message: String(error) })),
       }] }))
       return null
     }
-    context.ui.slot({ append: "home.footer.status", render: Commands })
-    context.ui.slot({ prepend: "sidebar.content", render: () => (
+    const releaseFooter = context.ui.slot({ append: "home.footer.status", render: Commands })
+    const releaseSidebar = context.ui.slot({ prepend: "sidebar.content", render: () => (
       <box flexDirection="row" height={1}>
         <Commands />
         <text fg={context.theme.text.muted} onMouseUp={() => void activate()}>Open in {favourite()?.name ?? "app"} </text>
         <text fg={context.theme.text.accent} onMouseUp={() => void pick().catch(error => context.ui.toast.show({ variant: "error", message: String(error) }))}>↓</text>
       </box>
     ) })
-    return () => { disposed = true }
+    return () => { disposed = true; releaseFooter?.(); releaseSidebar?.() }
   },
 })

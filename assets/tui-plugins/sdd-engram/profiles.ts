@@ -1005,7 +1005,8 @@ export function detectActiveProfileFile(files: string[], api: any): string | und
       const profilePath = path.join(profilesDir, file);
       const profileModels = canonicalizeProfileModels(readProfileModels(profilePath), policy);
       const keys = Object.keys(profileModels);
-      if (keys.length === 0) continue;
+      const fallback = readProfileFallbackModels(profilePath);
+      if (keys.length === 0 && Object.keys(fallback).length === 0) continue;
 
       const allMatch = keys.every((agentName) => {
         const profileModel = profileModels[agentName];
@@ -1017,24 +1018,16 @@ export function detectActiveProfileFile(files: string[], api: any): string | und
 
       primaryMatches.push({
         file,
-        fallback: readProfileFallbackModels(profilePath),
+        fallback,
       });
     } catch (e) {
       log.warn("findActiveProfileFile: unexpected error while inspecting candidate", e);
     }
   }
 
-  if (primaryMatches.length === 1) {
-    return primaryMatches[0].file;
-  }
-
-  if (primaryMatches.length <= 1) {
-    return undefined;
-  }
-
   const fallbackMatches = primaryMatches.filter(({ fallback }) => {
     const fallbackKeys = Object.keys(fallback || {});
-    if (fallbackKeys.length === 0) return false;
+    if (fallbackKeys.length === 0) return true;
 
     return fallbackKeys.every((agentName) => {
       const profileFallback = fallback[agentName];
@@ -1043,10 +1036,9 @@ export function detectActiveProfileFile(files: string[], api: any): string | und
     });
   });
 
-  if (fallbackMatches.length === 1) {
-    return fallbackMatches[0].file;
-  }
-
+  if (fallbackMatches.length === 1) return fallbackMatches[0].file;
+  const explicitFallbackMatches = fallbackMatches.filter(({ fallback }) => Object.keys(fallback).length > 0);
+  if (explicitFallbackMatches.length === 1) return explicitFallbackMatches[0].file;
   return undefined;
 }
 
@@ -1168,9 +1160,9 @@ function applyProfileModelsToConfig(currentConfig: any, profileModels: ProfileMo
 export function applyProfileDataToConfig(currentConfig: any, profile: ProfileData): any {
   const withPrimaryModels = applyProfileModelsToConfig(currentConfig, profile.models || {});
   const fallbackModels = profile.fallback || {};
-  const withFallback = syncSddFallbackAgents(withPrimaryModels, fallbackModels);
-  const policy = getOrchestratorPolicy(Object.keys(withFallback?.agent || {}), withFallback?.default_agent);
-  return applyProfileReasoningEffort(withFallback, profile, [], policy).config;
+  const policy = getOrchestratorPolicy(Object.keys(withPrimaryModels?.agent || {}), withPrimaryModels?.default_agent);
+  const withReasoning = applyProfileReasoningEffort(withPrimaryModels, profile, [], policy).config;
+  return syncSddFallbackAgents(withReasoning, fallbackModels);
 }
 
 /**
@@ -1220,9 +1212,8 @@ export async function activateProfileFile(api: any, profilePath: string, profile
       throw new Error(fallbackValidationErrors.join(" | "));
     }
 
-    const nextConfigWithFallback = syncSddFallbackAgents(nextConfigWithModels, profileData.fallback || {});
-    const reasoningResult = applyProfileReasoningEffort(nextConfigWithFallback, profileData, api?.state?.provider || [], policy);
-    const nextConfig = reasoningResult.config;
+    const reasoningResult = applyProfileReasoningEffort(nextConfigWithModels, profileData, api?.state?.provider || [], policy);
+    const nextConfig = syncSddFallbackAgents(reasoningResult.config, profileData.fallback || {});
 
     const result = await api.client.global.config.update({
       config: nextConfig,

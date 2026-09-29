@@ -6,7 +6,7 @@
  * and manage project-specific observations.
  */
 
-import { resolveEngramProjectName, resolveProjectCandidates, resolveProjectName } from "./config";
+import { resolveEngramProjectName, resolveProjectCandidates } from "./config";
 import { createLogger } from "./logger";
 import type { EngramObservation } from "./types";
 
@@ -43,10 +43,10 @@ function normalizeMemory(memory: any, fallbackProject: string): EngramObservatio
  * @param api - The TUI API instance
  * @returns Array of normalized Engram observations
  */
-export async function listProjectMemories(api: any): Promise<EngramObservation[]> {
+export async function listProjectMemories(api: any, candidates?: string[]): Promise<EngramObservation[]> {
   const configuredProjectName = resolveEngramProjectName(api);
-  const projectName = configuredProjectName || resolveProjectName(api);
-  const projectCandidates = configuredProjectName ? [configuredProjectName] : resolveProjectCandidates(api);
+  const projectCandidates = candidates ?? (configuredProjectName ? [configuredProjectName] : await resolveProjectCandidates(api));
+  const projectName = projectCandidates[0] || "unknown";
 
   if (projectCandidates.length === 0) return [];
 
@@ -61,10 +61,11 @@ export async function listProjectMemories(api: any): Promise<EngramObservation[]
             headers: { "Accept": "application/json" },
             signal: AbortSignal.timeout(3000),
           });
-          return res.ok ? await res.json() : [];
+          if (!res.ok) throw new Error(`Engram returned HTTP ${res.status}`);
+          return await res.json();
         } catch (error) {
           log.warn(`listProjectMemories: failed to fetch recent observations for candidate '${project}'`, error);
-          return [];
+          throw error;
         }
       })
     );
@@ -91,7 +92,7 @@ export async function listProjectMemories(api: any): Promise<EngramObservation[]
     });
   } catch (error) {
     log.error("listProjectMemories: failed to list project memories via Engram API", error);
-    return [];
+    throw error;
   }
 }
 

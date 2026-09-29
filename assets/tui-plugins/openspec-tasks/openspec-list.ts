@@ -28,7 +28,7 @@ export interface OpenSpecListGateway {
 
 interface EligibleCandidate {
   readonly name: string;
-  readonly status: "in-progress" | "complete";
+  readonly status: "in-progress" | "complete" | "no-tasks";
   readonly lastModified: number;
 }
 
@@ -83,7 +83,7 @@ function readEligibleCandidate(value: unknown): EligibleCandidate | undefined {
     !isRecord(value) ||
     typeof value.name !== "string" ||
     !isValidChangeName(value.name) ||
-    (value.status !== "in-progress" && value.status !== "complete") ||
+    (value.status !== "in-progress" && value.status !== "complete" && value.status !== "no-tasks") ||
     typeof value.lastModified !== "string"
   ) {
     return undefined;
@@ -100,7 +100,8 @@ function precedes(
   selected: EligibleCandidate,
 ): boolean {
   if (candidate.status !== selected.status) {
-    return candidate.status === "in-progress";
+    const rank = { "in-progress": 0, "no-tasks": 1, "complete": 2 };
+    return rank[candidate.status] < rank[selected.status];
   }
   return candidate.lastModified > selected.lastModified;
 }
