@@ -907,6 +907,11 @@ func TestPublishedTUIPluginSelectionDefaultsOrderingAndIndependence(t *testing.T
 	if openInAppIndex != statuslineIndex+1 {
 		t.Fatal("Open in App must follow subagent statusline")
 	}
+	for _, retired := range []string{"opencode-openspec-task-tui", "sdd-engram", "engram-plugin", "openspec", "codegraph"} {
+		if _, found := indexes[retired]; found {
+			t.Fatalf("retired integration %s is still registered", retired)
+		}
+	}
 	model.phase = extrasPhase
 	model.cursor = openInAppIndex
 	updated, _ := model.updateExtras(" ")

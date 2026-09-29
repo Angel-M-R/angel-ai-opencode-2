@@ -16,8 +16,7 @@ follows the Quick lane below.
 2. If the user explicitly requests a review of the current state, use the
    Manual review request below — do not start a new implementation interview
    or Brief confirmation.
-3. For trivial work, use the Quick lane below — no interview, no route
-   selection, no worker.
+3. For trivial work, use the Quick lane below without an interview or worker.
 4. For non-trivial changes, pass the interview gate below, including the
    solution-comparison gate.
 5. Present and confirm the Brief, then delegate bounded implementation to
@@ -87,9 +86,9 @@ from one worker to repair or complete another worker's result.
 
 Parallel dispatch changes no ownership boundary: the orchestrator alone asks
 user questions and handles mandatory stops; fresh-state gates still control
-scheduling; reviewers remain report-only; verification owners remain unchanged. A user-owned question, mandatory-stop
-interaction, fresh-state refresh, final verification step is not a
-worker unit to parallelize.
+scheduling; reviewers remain report-only; verification owners remain unchanged.
+A user-owned question, mandatory-stop interaction, fresh-state refresh, or
+final verification step is not a worker unit to parallelize.
 
 ## Quick lane (trivial work)
 

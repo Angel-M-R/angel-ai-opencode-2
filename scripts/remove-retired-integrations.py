@@ -12,6 +12,7 @@ from urllib.parse import unquote, urlparse
 
 REPO = Path(__file__).resolve().parents[1]
 RETIRED = {'engram-plugin', 'engram', 'sdd', 'openspec', 'notion', 'supabase', 'railway', 'codegraph'}
+MANAGED_ASSETS = {'agents/angel-orchestrator.md', 'skills/product-grilling/SKILL.md'}
 PACKAGES = {'opencode-sdd-engram-manage', 'opencode-openspec-task-tui', 'openspec-opencode-statusline'}
 
 
@@ -107,11 +108,11 @@ def plan(root):
             updated = text[:text.index(start)] + text[text.index(end) + len(end):]
             edits['AGENTS.md'] = updated.rstrip().encode() + b'\n'
 
-    for name in ('agents/angel-orchestrator.md', 'skills/product-grilling/SKILL.md'):
+    for name in sorted(MANAGED_ASSETS):
         path = root / name
-        if path.exists():
+        if path.exists() or path.is_symlink():
             source = (REPO / 'assets' / name).read_bytes()
-            if path.read_bytes() != source:
+            if path.is_symlink() or path.read_bytes() != source:
                 # A shared skill link is replaced locally, never edited at its target.
                 parent = path.parent
                 if parent.is_symlink():
@@ -144,7 +145,7 @@ def plan(root):
 
     for name in edits:
         path = root / name
-        if path.is_symlink() and edits[name] is not None:
+        if path.is_symlink() and edits[name] is not None and name not in MANAGED_ASSETS:
             raise ValueError(f'{name} is a symlink; refusing to overwrite its target')
         for parent in path.parents:
             if parent == root:
@@ -189,6 +190,7 @@ def apply(root, edits, backup_root):
             finally:
                 if os.path.exists(temporary):
                     os.unlink(temporary)
+        (backup / 'changed-paths.json').write_bytes(encoded(list(edits)))
     except Exception:
         # Restore parents as units, preserving original symlinks.
         roots = [n for n in changed if not any(n.startswith(p + '/') for p in changed if p != n)]
@@ -203,7 +205,6 @@ def apply(root, edits, backup_root):
                 else:
                     shutil.copy2(saved, path)
         raise
-    (backup / 'changed-paths.json').write_bytes(encoded(list(edits)))
     return backup
 
 

@@ -80,6 +80,41 @@ class CleanupTests(unittest.TestCase):
         for name in ('agents/angel-orchestrator.md', 'skills/product-grilling/SKILL.md'):
             self.assertEqual((self.root / name).read_bytes(), (retire.REPO / 'assets' / name).read_bytes())
 
+    def test_managed_file_links_are_replaced_without_editing_targets(self):
+        for index, name in enumerate(sorted(retire.MANAGED_ASSETS)):
+            shared = self.base / f'shared-{index}.md'
+            shared.write_text('shared prompt')
+            link = self.root / name
+            link.parent.mkdir(parents=True, exist_ok=True)
+            link.symlink_to(shared)
+        backup = retire.apply(self.root, retire.plan(self.root), self.backups)
+        for index, name in enumerate(sorted(retire.MANAGED_ASSETS)):
+            self.assertFalse((self.root / name).is_symlink())
+            self.assertEqual((self.root / name).read_bytes(), (retire.REPO / 'assets' / name).read_bytes())
+            self.assertTrue((backup / 'config' / name).is_symlink())
+            self.assertEqual((self.base / f'shared-{index}.md').read_text(), 'shared prompt')
+        self.assertEqual(retire.plan(self.root), {})
+
+    def test_manifest_failure_restores_deleted_files_and_managed_links(self):
+        hook = self.write('plugins/engram.ts', 'old hook')
+        shared = self.base / 'shared.md'
+        shared.write_text('shared prompt')
+        link = self.root / 'skills/product-grilling/SKILL.md'
+        link.parent.mkdir(parents=True)
+        link.symlink_to(shared)
+        write_bytes = Path.write_bytes
+        def fail_manifest(path, content):
+            if path.name == 'changed-paths.json':
+                raise OSError('injected manifest write failure')
+            return write_bytes(path, content)
+        with patch.object(Path, 'write_bytes', fail_manifest):
+            with self.assertRaisesRegex(OSError, 'manifest'):
+                retire.apply(self.root, retire.plan(self.root), self.backups)
+        self.assertEqual(hook.read_text(), 'old hook')
+        self.assertTrue(link.is_symlink())
+        self.assertEqual(link.readlink(), shared)
+        self.assertEqual(shared.read_text(), 'shared prompt')
+
     def test_invalid_input_never_mutates(self):
         original = self.write('opencode.json', {'mcp': {'engram': {}}}).read_bytes()
         self.write('cli.json', '{broken')

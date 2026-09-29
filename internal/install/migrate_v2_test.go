@@ -21,7 +21,7 @@ func TestV2MigrationPreservesUserConfigAndReconcilesPackages(t *testing.T) {
 	}}
 	raw, _ := json.Marshal(cli)
 	writeTestFile(t, filepath.Join(target, "cli.json"), string(raw))
-	original := `{"agent":{"angel-orchestrator":{"model":"test/model"}},"mcp":{"example":{"enabled":false}},"permission":{"bash":{"rm *":"deny"}},"plugin":["./plugins/cmux-session.js","opencode-claude-auth@latest","foreign-server"]}`
+	original := `{"agent":{"angel-orchestrator":{"model":"test/model"}},"mcp":{"example":{"enabled":false}},"permission":{"bash":{"rm *":"deny"}},"plugin":["./plugins/engram.ts","./plugins/cmux-session.js","opencode-claude-auth@latest","foreign-server"]}`
 	writeTestFile(t, filepath.Join(target, "opencode.json"), original)
 	writeTestFile(t, filepath.Join(target, "plugins", "cmux-session.js"), "legacy")
 	writeTestFile(t, filepath.Join(target, "agents", "angel-orchestrator.md"), "user-customized prompt\n")

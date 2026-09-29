@@ -78,7 +78,7 @@ func TestAgentAssetsAreCatalogedAndInstalledUnchanged(t *testing.T) {
 // Agent frontmatter stays structurally safe without pinning prompt prose: it
 // parses, declares no deprecated variant, subagents keep a tools block that
 // denies recursive task delegation, read-only agents keep edit and write
-// disabled, and the verifier stays skill-free. Command permissions live in
+// disabled. Command permissions live in
 // the shared assets/fragments/permissions.json, not per-agent frontmatter.
 func TestAgentFrontmatterRemainsStructurallySafe(t *testing.T) {
 	readOnly := map[string]bool{

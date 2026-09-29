@@ -93,7 +93,7 @@ func migrateV2ServerConfig(configDir string, config map[string]any) error {
 			file, local := tuiPluginBundlePath(configDir, name)
 			// These files are auto-discovered. V2 rejects explicit file references.
 			if local && (file == filepath.Join(configDir, "plugins", "cmux-session.js") ||
-				file == filepath.Join(configDir, "plugins", "cmux-feed.js")) {
+				file == filepath.Join(configDir, "plugins", "cmux-feed.js") || file == filepath.Join(configDir, "plugins", "engram.ts")) {
 				continue
 			}
 			if strings.TrimSpace(name) != "" {
