@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { mkdtempSync, readdirSync, mkdirSync, writeFileSync, readFileSync, symlinkSync, lstatSync, rmSync } from "node:fs"
+import { mkdtempSync, readdirSync, mkdirSync, writeFileSync, readFileSync, linkSync, symlinkSync, lstatSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { canonicalizeAgentConfig, getOrchestratorPolicy } from "../../assets/tui-plugins/sdd-engram/orchestrator"
@@ -88,6 +88,8 @@ test("profile reasoning clearing reaches reconciled fallback agents", () => {
    const change = join(root, "change"), task = join(change, "tasks.md")
    mkdirSync(change); writeFileSync(join(root, "private.md"), "private")
    symlinkSync(join(root, "private.md"), task)
+   await expect(readContainedTaskFile(task, change)).rejects.toThrow()
+   rmSync(task); linkSync(join(root, "private.md"), task)
    await expect(readContainedTaskFile(task, change)).rejects.toThrow()
    rmSync(task); writeFileSync(task, "- [ ] safe")
    expect(await readContainedTaskFile(task, change)).toBe("- [ ] safe")

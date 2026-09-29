@@ -319,7 +319,7 @@ export async function readContainedTaskFile(taskFilePath: string, rootPath: stri
     if (!contained(current)) throw new Error("Task file changed outside change root");
     const actual = await file.stat();
     const expected = await stat(current);
-    if (!actual.isFile() || actual.dev !== expected.dev || actual.ino !== expected.ino) {
+    if (!actual.isFile() || actual.nlink !== 1 || expected.nlink !== 1 || actual.dev !== expected.dev || actual.ino !== expected.ino) {
       throw new Error("Task file changed during open");
     }
     return await file.readFile("utf8");

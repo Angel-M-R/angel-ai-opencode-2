@@ -125,12 +125,17 @@ func TestV2MigrationRecognizesPackageDirectory(t *testing.T) {
 	}
 }
 
-func TestV2MigrationPreservesCustomDescriptorWithMatchingExportedID(t *testing.T) {
+func TestV2MigrationPreservesCustomDescriptorByPackagePath(t *testing.T) {
 	target, custom := t.TempDir(), t.TempDir()
 	entry := filepath.Join(custom, "custom.tsx")
 	writeTestFile(t, entry, `export default { id: "opencode-open-in-app", setup() {} }`)
 	descriptor := map[string]any{"package": entry, "options": map[string]any{"custom": true}}
 	resolver := v2UIPluginIdentityResolver(target, map[string]bool{"opencode-open-in-app": true})
+	// Prove the fixture triggers the legacy exported-ID path for strings.
+	// The same bundle as a descriptor must instead retain package-path identity.
+	if got := resolver(entry); got != "opencode-open-in-app" {
+		t.Fatalf("fixture does not exercise exported-ID matching: %q", got)
+	}
 	desired := filepath.Join(target, "tui-plugins", "open-in-app")
 	got := mergePluginArrayWithIdentity([]any{descriptor}, []any{desired}, resolver)
 	if !reflect.DeepEqual(got, []any{descriptor, desired}) {
