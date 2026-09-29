@@ -2,7 +2,8 @@ const ELLIPSIS = "…";
 const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 function graphemes(value: string): string[] { return Array.from(segmenter.segment(value), part => part.segment); }
 function graphemeWidth(value: string): number {
-  if (/\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(value)) return 2;
+  if (/^[#*0-9]\uFE0F?\u20E3$/u.test(value)) return 2;
+  if (!value.includes("\uFE0E") && /\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(value)) return 2;
   return Math.max(0, ...Array.from(value, characterWidth));
 }
 

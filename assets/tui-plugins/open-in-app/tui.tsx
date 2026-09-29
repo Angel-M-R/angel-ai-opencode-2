@@ -1,12 +1,13 @@
 /** @jsxImportSource @opentui/solid */
 import { Plugin } from "@opencode/plugin/tui"
 import { createSignal } from "solid-js"
-import { createAppCatalog, launchApp, type App } from "./apps"
+import { createAppCatalog, launchApp, type App, type AppCatalog } from "./apps"
 
-export default Plugin.define({
+export function createOpenInAppPlugin(catalogFactory: () => AppCatalog = () => createAppCatalog({ timeoutMs: 1500 })) {
+return Plugin.define({
   id: "opencode-open-in-app",
   setup(context) {
-    const catalog = createAppCatalog({ timeoutMs: 1500 })
+    const catalog = catalogFactory()
     const [saved, save] = context.storage.store<{ favourite?: string }>("favourite", { initial: {} })
     const [favourite, setFavourite] = createSignal<App>()
     let disposed = false
@@ -64,3 +65,7 @@ export default Plugin.define({
     return () => { disposed = true; releaseFooter?.(); releaseSidebar?.() }
   },
 })
+
+}
+
+export default createOpenInAppPlugin()
