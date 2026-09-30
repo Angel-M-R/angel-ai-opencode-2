@@ -471,8 +471,8 @@ func cloneJSONObject(source map[string]any) (map[string]any, error) {
 	return cloned, nil
 }
 
-// prepareUIExtras installs local v2 plugin packages. cli.json is the v2 client
-// configuration; tui.json is retained as the user's v1 rollback copy.
+// prepareUIExtras installs local and npm v2 plugin packages. cli.json is the v2
+// client configuration; tui.json is retained as the user's v1 rollback copy.
 func prepareUIExtras(prepared *preparedInstallation, request InstallationRequest) error {
 	var patches []map[string]any
 	selected := map[string]bool{}
@@ -481,6 +481,10 @@ func prepareUIExtras(prepared *preparedInstallation, request InstallationRequest
 			continue
 		}
 		selected[plugin.identity] = true
+		if plugin.npmPackage != "" {
+			patches = append(patches, map[string]any{"plugins": []any{plugin.npmPackage}})
+			continue
+		}
 		target := filepath.Join(request.ConfigDir, "tui-plugins", plugin.directory)
 		files, err := prepareDirectory(request.Assets, path.Join("tui-plugins", plugin.directory), target)
 		if err != nil {

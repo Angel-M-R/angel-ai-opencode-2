@@ -2,9 +2,6 @@ import { expect, test } from "bun:test"
 import { testRender } from "@opentui/solid"
 import type { Plugin } from "@opencode/plugin/tui"
 import angel from "../../assets/tui-plugins/angel-logo/tui"
-import { createOpenInAppTui } from "../../assets/tui-plugins/open-in-app/tui"
-
-const openInApp = createOpenInAppTui({ catalog: { getDetectedApps: async () => [] } })
 
 function host() {
   const slots: any[] = [], commands: any[] = []
@@ -21,9 +18,8 @@ function host() {
   return { slots, commands, context }
 }
 
-test("commands mount once from the slot each plugin owns them in", async () => {
-  // OpenCode mounts `app` on every route; the Angel logo keeps its home-only footer commands.
-  for (const [plugin, slash, path] of [[angel, "angel-mcps", "home.footer.status"], [openInApp, "open-in-app", "app"]] as const) {
+test("Angel logo commands mount once from the home footer", async () => {
+  for (const [plugin, slash, path] of [[angel, "angel-mcps", "home.footer.status"]] as const) {
     const h = host()
     const cleanup = await plugin.setup(h.context)
     const owners = h.slots.filter(slot => slot.append === path)

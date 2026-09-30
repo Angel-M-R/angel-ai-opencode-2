@@ -42,8 +42,12 @@ its inventory, especially if agent prompts have local edits.
 | Subagent status | Native session family and outcome data |
 | Claude authentication | Pinned `opencode-claude-auth-v2@0.4.0-beta.5` |
 
-TUI plugins are installed as directories, so OpenCode can resolve the native
-`tui.tsx` entrypoint. Solid/OpenTUI are supplied by the host. Do not add these
+Vendored TUI plugins are installed as directories, so OpenCode can resolve the
+native `tui.tsx` entrypoint. Open in App is added as the npm package
+`opencode-open-in-app` instead. Installations that still have the earlier local
+copy in `tui-plugins/open-in-app` get their `cli.json` entry replaced by the
+package; delete that directory afterwards, or `angel-ai sync` reports it as a
+`retired_file` and stops. Solid/OpenTUI are supplied by the host. Do not add these
 UI plugins to the server's `opencode.json` plugin list. Server hooks under
 `plugins/` are auto-discovered and should not also be configured explicitly.
 

@@ -318,6 +318,7 @@ export default {}`)
 		relativeSecondOpenInApp,
 		fileOpenInApp,
 		"opencode-open-in-app@1.2.3",
+		filepath.Join(target, "tui-plugins", "open-in-app"),
 		"opencode-subagent-statusline@2.3.4",
 		"unrelated-after",
 	})
@@ -333,7 +334,7 @@ export default {}`)
 	}
 	wantMigrated := []string{
 		"unrelated-before",
-		filepath.Join(target, "tui-plugins", "open-in-app"),
+		"opencode-open-in-app",
 		unrecognized,
 		commentDecoy,
 		stringDecoy,
@@ -406,7 +407,7 @@ func TestApplyAppendsSelectedPublishedTUIPluginWhenAbsent(t *testing.T) {
 	if err := json.Unmarshal(readFile(t, tuiPath), &config); err != nil {
 		t.Fatal(err)
 	}
-	want := append(append([]string(nil), unrelatedPlugins...), filepath.Join(target, "tui-plugins", "open-in-app"))
+	want := append(append([]string(nil), unrelatedPlugins...), "opencode-open-in-app")
 	if !reflect.DeepEqual(config.Plugin, want) {
 		t.Fatalf("TUI plugins = %v, want %v", config.Plugin, want)
 	}
@@ -451,7 +452,7 @@ export default { id: "opencode-open-in-app" };
 	if err := json.Unmarshal(readFile(t, tuiPath), &config); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{filepath.Join(target, "tui-plugins", "open-in-app")}
+	want := []string{"opencode-open-in-app"}
 	if !reflect.DeepEqual(config.Plugin, want) {
 		t.Fatalf("TUI plugins = %v, want %v", config.Plugin, want)
 	}
@@ -544,7 +545,7 @@ func TestLoadAndApply(t *testing.T) {
 func uiFixtureAssets(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
-	for _, name := range []string{"angel-logo", "subagent-statusline", "open-in-app"} {
+	for _, name := range []string{"angel-logo", "subagent-statusline"} {
 		write(t, filepath.Join(root, "tui-plugins", name, "tui.tsx"), "export default {}\n")
 	}
 	return root
