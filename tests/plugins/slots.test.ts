@@ -21,16 +21,17 @@ function host() {
   return { slots, commands, context }
 }
 
-test("commands mount in the official home footer without relying on the app slot", async () => {
-  for (const [plugin, slash] of [[angel, "angel-mcps"], [openInApp, "open-in-app"]] as const) {
+test("commands mount once from the slot each plugin owns them in", async () => {
+  // OpenCode mounts `app` on every route; the Angel logo keeps its home-only footer commands.
+  for (const [plugin, slash, path] of [[angel, "angel-mcps", "home.footer.status"], [openInApp, "open-in-app", "app"]] as const) {
     const h = host()
     const cleanup = await plugin.setup(h.context)
-    const slot = h.slots.find(slot => slot.append === "home.footer.status")
-    expect(slot).toBeDefined()
-    const rendered = await testRender(() => slot.render({}), { width: 80, height: 20 })
+    const owners = h.slots.filter(slot => slot.append === path)
+    expect(owners).toHaveLength(1)
+    const rendered = await testRender(() => owners[0].render({}), { width: 80, height: 20 })
     try {
       await rendered.renderOnce()
-      expect(h.commands.some(command => command.slash?.name === slash)).toBe(true)
+      expect(h.commands.filter(command => command.slash?.name === slash)).toHaveLength(1)
     } finally { rendered.renderer.destroy(); await cleanup?.() }
   }
 })

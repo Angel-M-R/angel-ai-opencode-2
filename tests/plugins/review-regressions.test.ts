@@ -47,7 +47,7 @@ test("UI unload releases every registered slot and picker is keyboard accessible
       keymap: { layer: (factory: any) => { commands.push(...factory().commands) } },
     } as unknown as Plugin.Context
     const cleanup = await plugin.setup(context)
-    const commandSlot = slots.find(slot => slot.append === "home.footer.status")
+    const commandSlot = slots.find(slot => slot.append === (plugin === open ? "app" : "home.footer.status"))
     const rendered = await testRender(() => commandSlot.render({}), { width: 80, height: 20 })
     await rendered.renderOnce()
     if (plugin === open) expect(commands.some(command => command.slash?.name === "open-in-app-choose")).toBe(true)

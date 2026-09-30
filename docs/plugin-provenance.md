@@ -7,7 +7,7 @@ validation, preserving its source and license.
 | Installed component | Source and revision | Local adaptation |
 |---|---|---|
 | Angel logo/MCP | Angel AI assets from base `5a827596e3be77d5a7187d4f30f366ea26ede1b1` | Central logo slot on the patched host, official footer fallback, status objects and commands |
-| Open in App | [Angel-M-R/opencode-open-in-app](https://github.com/Angel-M-R/opencode-open-in-app) [`169b04e1603f27a01e93e5c9d53ec49467672ef6`](https://github.com/Angel-M-R/opencode-open-in-app/commit/169b04e1603f27a01e93e5c9d53ec49467672ef6) | Byte-identical v2 source snapshot; upstream [migration PR](https://github.com/Angel-M-R/opencode-open-in-app/pull/1) |
+| Open in App | [Angel-M-R/opencode-open-in-app](https://github.com/Angel-M-R/opencode-open-in-app) [`32630c64b832d804a1c7e248385d91e30b8d0262`](https://github.com/Angel-M-R/opencode-open-in-app/commit/32630c64b832d804a1c7e248385d91e30b8d0262) | Byte-identical v2 source snapshot; upstream [migration PR](https://github.com/Angel-M-R/opencode-open-in-app/pull/1) |
 | Subagent monitor | [Alanhiram75/sub-agent-statusline](https://github.com/Alanhiram75/sub-agent-statusline/tree/a585b0923a0c1382bba69c14f78d733eee6a3d44) | Pinned v2 port; local import layout |
 
 Claude auth is installed from npm at the exact version

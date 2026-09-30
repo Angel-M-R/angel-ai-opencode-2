@@ -77,6 +77,7 @@ export function createApplicationPicker({
         });
       } catch {
         // Host dialog failures must not escape through the activation handler.
+        showToast(toast, "Failed to open the application picker.");
       }
     },
   };

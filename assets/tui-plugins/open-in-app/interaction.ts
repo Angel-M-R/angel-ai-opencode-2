@@ -1,5 +1,7 @@
 export interface ActivationKeyEvent {
   readonly name: string;
+  readonly repeated?: boolean;
+  readonly eventType?: "press" | "repeat" | "release";
   preventDefault(): void;
   stopPropagation(): void;
 }
@@ -25,6 +27,8 @@ export function activateFromKey(
 
   event.preventDefault();
   event.stopPropagation();
+  // Holding Return/Space emits key-repeat events; consume them without relaunching.
+  if (event.repeated || event.eventType === "repeat") return true;
   activate();
   return true;
 }

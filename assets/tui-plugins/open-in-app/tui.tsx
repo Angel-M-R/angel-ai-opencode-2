@@ -50,13 +50,13 @@ export function createOpenInAppTui(dependencies: OpenInAppTuiDependencies = {}) 
         const root = project(); if (!root || disposed) return;
         const app = favourite(); if (app) void picker.launch(app, root); else void picker.open(root);
       };
-      const Commands = () => { registerOpenFavouriteKeymap(context, activate, pick); return null; };
-      const releaseFooter = context.ui.slot({ append: "home.footer.status", render: Commands });
-      const releaseSidebar = context.ui.slot({ prepend: "sidebar.content", render: () => <>
-        <Commands />
-        <OpenInAppControl favourite={favourite()} theme={context.theme} activateLabel={activate} activateChevron={pick} />
-      </> });
-      return () => { if (disposed) return; disposed = true; releaseSidebar(); releaseFooter(); };
+      // The always-mounted app slot owns the only keymap layer, so commands exist once on every route.
+      const releaseCommands = context.ui.slot({ append: "app", render: () => {
+        registerOpenFavouriteKeymap(context, activate, pick); return null;
+      } });
+      const releaseSidebar = context.ui.slot({ prepend: "sidebar.content", render: () =>
+        <OpenInAppControl favourite={favourite()} theme={context.theme} activateLabel={activate} activateChevron={pick} /> });
+      return () => { if (disposed) return; disposed = true; releaseSidebar(); releaseCommands(); };
     },
   });
 }
