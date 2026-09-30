@@ -1,6 +1,6 @@
 ---
 name: product-grilling
-description: Interview the user about the product side of a change before planning — problem, users, business rules, scope, non-goals. Use before creating an OpenSpec change when the user chose product questions.
+description: Interview the user about the product side of a change before planning — problem, users, business rules, scope, non-goals. Use before planning a change when the user chose product questions.
 ---
 
 # Product grilling
@@ -20,7 +20,7 @@ a document.
 - Offer concrete answer options and put your recommended one first, marked as
   recommended. The user decides; you never assume.
 - Facts are yours, decisions are theirs: anything discoverable from the
-  codebase, docs, or existing OpenSpec artifacts you investigate with tools —
+  codebase, docs, or existing project documents you investigate with tools —
   never ask the user something you can look up.
 - Treat the bounded change selected by the interview preflight as the scope.
   Do not reopen deferred subsystems during questioning; retain them as later

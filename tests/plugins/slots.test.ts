@@ -1,9 +1,10 @@
 import { expect, test } from "bun:test"
 import { testRender } from "@opentui/solid"
 import type { Plugin } from "@opencode/plugin/tui"
-import { createOpenSpecTaskTui } from "../../assets/tui-plugins/openspec-tasks/tui"
 import angel from "../../assets/tui-plugins/angel-logo/tui"
-import openInApp from "../../assets/tui-plugins/open-in-app/tui"
+import { createOpenInAppTui } from "../../assets/tui-plugins/open-in-app/tui"
+
+const openInApp = createOpenInAppTui({ catalog: { getDetectedApps: async () => [] } })
 
 function host() {
   const slots: any[] = [], commands: any[] = []
@@ -12,7 +13,7 @@ function host() {
     data: { session: { get: () => ({ location: { directory: "/project" } }) } },
     storage: { store: (_key: string, options: any) => [options.initial, async (update: any) => update(options.initial)] },
     keymap: { layer: (factory: any) => { commands.push(...factory().commands) } },
-    ui: { slot: (slot: any) => { slots.push(slot) }, toast: { show() {} } },
+    ui: { slot: (slot: any) => { slots.push(slot); return () => {} }, toast: { show() {} } },
     theme: { text: { base: "#ffffff", muted: "#aaaaaa", accent: "#00aaff", feedback: {
       success: { base: "#00ff00" }, warning: { base: "#ffff00" }, error: { base: "#ff0000" },
     } }, background: { base: "#000000", raised: "#111111" }, border: { base: "#555555" } },
@@ -20,43 +21,19 @@ function host() {
   return { slots, commands, context }
 }
 
-test("commands mount in the official home footer without relying on the app slot", async () => {
-  for (const [plugin, slash] of [[angel, "angel-mcps"], [openInApp, "open-in-app"]] as const) {
+test("commands mount once from the slot each plugin owns them in", async () => {
+  // OpenCode mounts `app` on every route; the Angel logo keeps its home-only footer commands.
+  for (const [plugin, slash, path] of [[angel, "angel-mcps", "home.footer.status"], [openInApp, "open-in-app", "app"]] as const) {
     const h = host()
     const cleanup = await plugin.setup(h.context)
-    const slot = h.slots.find(slot => slot.append === "home.footer.status")
-    expect(slot).toBeDefined()
-    const rendered = await testRender(() => slot.render({}), { width: 80, height: 20 })
+    const owners = h.slots.filter(slot => slot.append === path)
+    expect(owners).toHaveLength(1)
+    const rendered = await testRender(() => owners[0].render({}), { width: 80, height: 20 })
     try {
       await rendered.renderOnce()
-      expect(h.commands.some(command => command.slash?.name === slash)).toBe(true)
+      expect(h.commands.filter(command => command.slash?.name === slash)).toHaveLength(1)
     } finally { rendered.renderer.destroy(); await cleanup?.() }
   }
-})
-
-test("OpenSpec native sidebar uses the session project and renders fixture progress", async () => {
-  const h = host()
-  const directories: string[] = []
-  const plugin = createOpenSpecTaskTui({
-    listGateway: { resolve: async directory => { directories.push(directory); return { status: "selected", changeName: "fixture" } } },
-    statusGateway: { resolve: async () => ({ status: "resolved", change: {
-      name: "fixture", rootPath: "/project", changesDirectoryPath: "/project/openspec/changes",
-      taskFilePath: "/project/openspec/changes/fixture/tasks.md",
-    } }) },
-    readTaskFile: async () => "# Validation\n- [x] Complete\n- [ ] Pending\n",
-    watch: () => ({ close() {} }),
-  })
-  await plugin.setup(h.context)
-  const slot = h.slots.find(slot => slot.append === "sidebar.content")
-  const rendered = await testRender(() => slot.render({ sessionID: "fixture" }), { width: 80, height: 20 })
-  try {
-    await new Promise(resolve => setTimeout(resolve, 30))
-    await rendered.renderOnce()
-    const frame = rendered.captureCharFrame()
-    expect(directories).toEqual(["/project"])
-    expect(frame).toContain("OpenSpec: fixture 1/2")
-    expect(frame).toContain("Pending")
-  } finally { rendered.renderer.destroy() }
 })
 
 test("patched hosts replace the central logo without duplicating branding in the footer", async () => {

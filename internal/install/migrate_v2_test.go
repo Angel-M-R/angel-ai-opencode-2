@@ -12,16 +12,16 @@ import (
 
 func TestV2MigrationPreservesUserConfigAndReconcilesPackages(t *testing.T) {
 	target := t.TempDir()
-	oldPackage := filepath.Join(t.TempDir(), "openspec")
-	writeTestFile(t, filepath.Join(oldPackage, "package.json"), `{"name":"opencode-openspec-task-tui"}`)
+	oldPackage := filepath.Join(t.TempDir(), "open-in-app")
+	writeTestFile(t, filepath.Join(oldPackage, "package.json"), `{"name":"opencode-open-in-app"}`)
 	bundled := filepath.Join(oldPackage, "dist", "tui.js")
 	writeTestFile(t, bundled, `throw new Error("must not execute plugin when planning")`)
 	cli := map[string]any{"theme": map[string]any{"name": "custom", "mode": "dark"}, "keybinds": map[string]any{"leader": "ctrl+x"}, "plugins": []any{
-		"foreign", filepath.Join(target, "tui-plugins", "angel-logo.tsx"), bundled, "opencode-openspec-task-tui", "opencode-subagent-statusline@1.3.0",
+		"foreign", filepath.Join(target, "tui-plugins", "angel-logo.tsx"), bundled, "opencode-open-in-app", "opencode-subagent-statusline@1.3.0",
 	}}
 	raw, _ := json.Marshal(cli)
 	writeTestFile(t, filepath.Join(target, "cli.json"), string(raw))
-	original := `{"agent":{"angel-orchestrator":{"model":"test/model"}},"mcp":{"example":{"enabled":false}},"permission":{"bash":{"rm *":"deny"}},"plugin":["./plugins/cmux-session.js","opencode-claude-auth@latest","foreign-server"]}`
+	original := `{"agent":{"angel-orchestrator":{"model":"test/model"}},"mcp":{"example":{"enabled":false}},"permission":{"bash":{"rm *":"deny"}},"plugin":["./plugins/engram.ts","./plugins/cmux-session.js","opencode-claude-auth@latest","foreign-server"]}`
 	writeTestFile(t, filepath.Join(target, "opencode.json"), original)
 	writeTestFile(t, filepath.Join(target, "plugins", "cmux-session.js"), "legacy")
 	writeTestFile(t, filepath.Join(target, "agents", "angel-orchestrator.md"), "user-customized prompt\n")
@@ -58,7 +58,7 @@ func TestV2MigrationPreservesUserConfigAndReconcilesPackages(t *testing.T) {
 	if !reflect.DeepEqual(migrated["theme"], cli["theme"]) || !reflect.DeepEqual(migrated["keybinds"], cli["keybinds"]) {
 		t.Fatal("lost UI preferences")
 	}
-	want := []any{"foreign", filepath.Join(target, "tui-plugins", "angel-logo"), filepath.Join(target, "tui-plugins", "openspec-tasks"), filepath.Join(target, "tui-plugins", "subagent-statusline")}
+	want := []any{"foreign", filepath.Join(target, "tui-plugins", "angel-logo"), filepath.Join(target, "tui-plugins", "open-in-app"), filepath.Join(target, "tui-plugins", "subagent-statusline")}
 	if !reflect.DeepEqual(migrated["plugins"], want) {
 		t.Fatalf("plugins = %#v", migrated["plugins"])
 	}

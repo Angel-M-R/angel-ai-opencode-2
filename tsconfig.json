@@ -4,5 +4,5 @@
     "jsx": "preserve", "jsxImportSource": "@opentui/solid", "strict": true,
     "allowImportingTsExtensions": true, "skipLibCheck": true, "noEmit": true, "types": ["bun"]
   },
-  "include": ["assets/tui-plugins/**/*.ts", "assets/tui-plugins/**/*.tsx", "tests/plugins/**/*.ts", "assets/integrations/engram/*.ts"]
+  "include": ["assets/tui-plugins/**/*.ts", "assets/tui-plugins/**/*.tsx", "tests/plugins/**/*.ts"]
 }

@@ -859,45 +859,6 @@ func TestExtrasViewShowsNonUninstallNotice(t *testing.T) {
 	}
 }
 
-func TestCMUXSelectionDefaultsAndExplicitSelection(t *testing.T) {
-	model := New(nil, assetfs.Directory(t.TempDir()), t.TempDir())
-	seen := map[string]bool{}
-	for _, extra := range model.extras {
-		seen[extra.Key] = true
-	}
-	for _, key := range []string{"engram-plugin", "sdd-engram"} {
-		if !seen[key] {
-			t.Fatalf("missing extra %s", key)
-		}
-	}
-	for index, extra := range model.extras {
-		if extra.Key == "cmux" || extra.Key == "engram-plugin" || extra.Key == "sdd-engram" {
-			if model.extraSelected[index] {
-				t.Fatalf("optional integration %s must start unselected", extra.Key)
-			}
-			continue
-		}
-		if !model.extraSelected[index] {
-			t.Errorf("existing extra %q must remain selected by default", extra.Key)
-		}
-	}
-
-	model.phase = extrasPhase
-	for index, extra := range model.extras {
-		if extra.Key != "cmux" {
-			continue
-		}
-		model.cursor = index
-		updated, _ := model.updateExtras(" ")
-		model = updated.(Model)
-		if !model.chosenExtras()["cmux"] {
-			t.Fatal("explicit cmux selection was not included in chosen extras")
-		}
-		return
-	}
-	t.Fatal("cmux extra is missing")
-}
-
 func TestPublishedTUIPluginSelectionDefaultsOrderingAndIndependence(t *testing.T) {
 	model := New(nil, assetfs.Directory(t.TempDir()), t.TempDir())
 	indexes := map[string]int{}
@@ -913,39 +874,22 @@ func TestPublishedTUIPluginSelectionDefaultsOrderingAndIndependence(t *testing.T
 	if !found {
 		t.Fatal("Open in App extra is missing")
 	}
-	openSpecTaskIndex, found := indexes["opencode-openspec-task-tui"]
-	if !found {
-		t.Fatal("OpenSpec task TUI extra is missing")
+	if openInAppIndex != statuslineIndex+1 {
+		t.Fatal("Open in App must follow subagent statusline")
 	}
-	if openInAppIndex != statuslineIndex+1 || openSpecTaskIndex != openInAppIndex+1 {
-		t.Fatalf(
-			"published TUI extra indexes = (%d, %d), want adjacent after Subagent statusline at %d",
-			openInAppIndex,
-			openSpecTaskIndex,
-			statuslineIndex,
-		)
+	for _, retired := range []string{"cmux", "opencode-openspec-task-tui", "sdd-engram", "engram-plugin", "openspec", "codegraph"} {
+		if _, found := indexes[retired]; found {
+			t.Fatalf("retired integration %s is still registered", retired)
+		}
 	}
-	if !model.extraSelected[openInAppIndex] || !model.extraSelected[openSpecTaskIndex] {
-		t.Fatal("published TUI plugins must start selected")
-	}
-
 	model.phase = extrasPhase
 	model.cursor = openInAppIndex
 	updated, _ := model.updateExtras(" ")
 	model = updated.(Model)
-	selected := model.chosenExtras()
-	if selected["opencode-open-in-app"] || !selected["opencode-openspec-task-tui"] {
-		t.Fatalf("Open in App toggle changed independent selections: %v", selected)
+	if model.chosenExtras()["opencode-open-in-app"] || !model.chosenExtras()["subagent-statusline"] {
+		t.Fatal("toggle affected another extra")
 	}
-	updated, _ = model.updateExtras(" ")
-	model = updated.(Model)
-	model.cursor = openSpecTaskIndex
-	updated, _ = model.updateExtras(" ")
-	model = updated.(Model)
-	selected = model.chosenExtras()
-	if !selected["opencode-open-in-app"] || selected["opencode-openspec-task-tui"] {
-		t.Fatalf("OpenSpec task TUI toggle changed independent selections: %v", selected)
-	}
+
 }
 
 func agentModelsModel(t *testing.T, configDir string, agents ...string) Model {

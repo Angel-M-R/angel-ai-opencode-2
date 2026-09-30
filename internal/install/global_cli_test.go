@@ -54,14 +54,14 @@ func TestPackageRegistrationProbeReadsLeadingJSONDespiteTrailingStderr(t *testin
 		{
 			name:     "npm",
 			parse:    parseNPMPackageRegistration,
-			output:   "{\n  \"name\": \"lib\"\n}\nnpm ERR! code ELSPROBLEM\nnpm ERR! missing: @colbymchenry/codegraph@\n",
-			registry: "@colbymchenry/codegraph",
+			output:   "{\n  \"name\": \"lib\"\n}\nnpm ERR! code ELSPROBLEM\nnpm ERR! missing: @test/example@\n",
+			registry: "@test/example",
 		},
 		{
 			name:     "pnpm",
 			parse:    parsePNPMPackageRegistration,
 			output:   "[\n  {\n    \"name\": \"lib\"\n  }\n]\nnpm ERR! code ELSPROBLEM\n",
-			registry: "@colbymchenry/codegraph",
+			registry: "@test/example",
 		},
 	}
 	for _, test := range tests {
@@ -86,7 +86,7 @@ func TestPackageRegistrationProbeRejectsOutputWithoutLeadingJSON(t *testing.T) {
 	output := []byte("npm ERR! network unreachable\n")
 	commandErr := errors.New("exit status 1")
 
-	registered, parseErr := parseNPMPackageRegistration(output, "@colbymchenry/codegraph")
+	registered, parseErr := parseNPMPackageRegistration(output, "@test/example")
 	result := packageRegistrationProbeResult(registered, parseErr, commandErr, output)
 	if result.state != globalCLIPackageRegistrationUnavailable {
 		t.Fatalf("registration state = %s, want unavailable", result.state)
@@ -224,12 +224,12 @@ func TestInstallGlobalCLIDoesNotFallbackAfterNPMFailure(t *testing.T) {
 	}
 }
 
-func TestValidateGlobalCLIRuntimesChecksOpenSpecNodeFloor(t *testing.T) {
+func TestValidateGlobalCLIRuntimesChecksRuntimeCLINodeFloor(t *testing.T) {
 	descriptor := globalCLIDescriptor{
-		displayName:        "OpenSpec",
-		executable:         "openspec",
-		installSpec:        "@fission-ai/openspec@latest",
-		minimumNodeVersion: openSpecMinimumNodeVersion,
+		displayName:        "RuntimeCLI",
+		executable:         "runtimecli",
+		installSpec:        "@test/runtimecli@latest",
+		minimumNodeVersion: runtimeCLIMinimumNodeVersion,
 	}
 	tests := []struct {
 		name       string
@@ -299,7 +299,7 @@ func TestValidateGlobalCLIRuntimesSkipsNodeWithoutRequirement(t *testing.T) {
 	}
 
 	if err := validateGlobalCLIRuntimes([]globalCLIDescriptor{{
-		displayName: "CodeGraph", executable: "codegraph", installSpec: "@colbymchenry/codegraph@latest",
+		displayName: "Example", executable: "example", installSpec: "@test/example@latest",
 	}}, commands); err != nil {
 		t.Fatal(err)
 	}

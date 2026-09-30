@@ -33,7 +33,6 @@ func fixtureRequest(t *testing.T, assetRoot, target string) install.Installation
 		},
 		Extras: map[string]bool{
 			"theme": false,
-			"cmux":  false,
 		},
 		Assets:    assetfs.Directory(assetRoot),
 		ConfigDir: target,

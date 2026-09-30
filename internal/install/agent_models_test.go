@@ -38,14 +38,14 @@ func TestAgentModelsWriteBothKeysAndPreserveEverythingElse(t *testing.T) {
   "theme": "one-dark-pro",
   "agent": {
     "my-own-agent": {"model": "openai/gpt-5"},
-    "openspec-verifier": {"variant": "xhigh"}
+    "review-security-risk": {"variant": "xhigh"}
   }
 }
 `)
 
 	config := applyAgentModels(t, target, install.AgentModelAssignments{
-		"review-simplicity": {Model: "anthropic/claude-sonnet-4-6", Variant: "high"},
-		"openspec-verifier": {Model: "openai/gpt-5-mini", Variant: ""},
+		"review-simplicity":    {Model: "anthropic/claude-sonnet-4-6", Variant: "high"},
+		"review-security-risk": {Model: "openai/gpt-5-mini", Variant: ""},
 	})
 
 	if config["theme"] != "one-dark-pro" {
@@ -56,9 +56,9 @@ func TestAgentModelsWriteBothKeysAndPreserveEverythingElse(t *testing.T) {
 		t.Fatalf("agent object missing: %v", config["agent"])
 	}
 	want := map[string]any{
-		"my-own-agent":      map[string]any{"model": "openai/gpt-5"},
-		"openspec-verifier": map[string]any{"model": "openai/gpt-5-mini", "variant": ""},
-		"review-simplicity": map[string]any{"model": "anthropic/claude-sonnet-4-6", "variant": "high"},
+		"my-own-agent":         map[string]any{"model": "openai/gpt-5"},
+		"review-security-risk": map[string]any{"model": "openai/gpt-5-mini", "variant": ""},
+		"review-simplicity":    map[string]any{"model": "anthropic/claude-sonnet-4-6", "variant": "high"},
 	}
 	if !reflect.DeepEqual(agents, want) {
 		t.Fatalf("agent entries = %v, want %v", agents, want)
@@ -70,7 +70,7 @@ func TestEmptyAgentModelsLeaveConfigByteIdentical(t *testing.T) {
 	original := `{
   "$schema": "https://opencode.ai/config.json",
   "agent": {
-    "openspec-planner": {"model": "anthropic/claude-opus-4-1", "variant": "high"}
+    "review-correctness": {"model": "anthropic/claude-opus-4-1", "variant": "high"}
   }
 }
 `
@@ -99,8 +99,8 @@ func TestLoadAgentModelSelectionsRoundTrips(t *testing.T) {
 	write(t, filepath.Join(target, "opencode.json"), `{
   "agent": {
     "angel-orchestrator": {"model": "anthropic/claude-sonnet-4-6", "variant": "high"},
-    "openspec-planner": {"model": "openrouter/anthropic/claude-opus-4-1"},
-    "openspec-verifier": {"model": "malformed"},
+    "review-correctness": {"model": "openrouter/anthropic/claude-opus-4-1"},
+    "review-security-risk": {"model": "malformed"},
     "my-own-agent": {"model": "openai/gpt-5", "variant": "low"}
   }
 }
@@ -109,7 +109,7 @@ func TestLoadAgentModelSelectionsRoundTrips(t *testing.T) {
 	got := install.LoadAgentModelSelections(target)
 	want := map[string]install.AgentModelSelection{
 		"angel-orchestrator": {Provider: "anthropic", Model: "claude-sonnet-4-6", Effort: "high"},
-		"openspec-planner":   {Provider: "openrouter", Model: "anthropic/claude-opus-4-1"},
+		"review-correctness": {Provider: "openrouter", Model: "anthropic/claude-opus-4-1"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("selections = %v, want %v", got, want)
@@ -132,9 +132,9 @@ func TestHalfBuiltAgentModelsAreNeverWritten(t *testing.T) {
 		Assets:    assetfs.Directory(t.TempDir()),
 		ConfigDir: target,
 		AgentModels: install.AgentModelAssignments{
-			"review-simplicity":  {Model: "anthropic/"},
-			"review-correctness": {Model: "/gpt-5"},
-			"openspec-planner":   {Model: "gpt-5"},
+			"review-simplicity":    {Model: "anthropic/"},
+			"review-correctness":   {Model: "/gpt-5"},
+			"review-security-risk": {Model: "gpt-5"},
 		},
 	}); err != nil {
 		t.Fatal(err)

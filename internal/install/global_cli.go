@@ -15,14 +15,10 @@ import (
 )
 
 const (
-	codegraphRegistryPackage   = "@colbymchenry/codegraph"
-	openSpecRegistryPackage    = "@fission-ai/openspec"
-	openSpecPackage            = openSpecRegistryPackage + "@latest"
-	tsgoRegistryPackage        = "@typescript/native-preview"
-	tsgoPackage                = tsgoRegistryPackage + "@latest"
-	openSpecMinimumNodeVersion = "20.19.0"
-	globalCLICommandTimeout    = 5 * time.Minute
-	globalCLIOutputLimit       = 1 << 20
+	tsgoRegistryPackage     = "@typescript/native-preview"
+	tsgoPackage             = tsgoRegistryPackage + "@latest"
+	globalCLICommandTimeout = 5 * time.Minute
+	globalCLIOutputLimit    = 1 << 20
 )
 
 var semanticVersionPattern = regexp.MustCompile(
@@ -39,16 +35,6 @@ type globalCLIDescriptor struct {
 	minimumNodeVersion string
 }
 
-var openSpecGlobalCLI = globalCLIDescriptor{
-	optionKey:          openSpecOptionKey,
-	displayName:        "OpenSpec",
-	registryPackage:    openSpecRegistryPackage,
-	installSpec:        openSpecPackage,
-	executable:         "openspec",
-	versionArgs:        []string{"--version"},
-	minimumNodeVersion: openSpecMinimumNodeVersion,
-}
-
 var tsgoGlobalCLI = globalCLIDescriptor{
 	optionKey:       tsgoOptionKey,
 	displayName:     "tsgo",
@@ -58,18 +44,7 @@ var tsgoGlobalCLI = globalCLIDescriptor{
 	versionArgs:     []string{"--version"},
 }
 
-var globalCLIDescriptors = []globalCLIDescriptor{
-	{
-		optionKey:       codegraphOptionKey,
-		displayName:     "CodeGraph",
-		registryPackage: codegraphRegistryPackage,
-		installSpec:     codegraphPackage,
-		executable:      "codegraph",
-		versionArgs:     []string{"--version"},
-	},
-	openSpecGlobalCLI,
-	tsgoGlobalCLI,
-}
+var globalCLIDescriptors = []globalCLIDescriptor{tsgoGlobalCLI}
 
 func selectedGlobalCLIs(extras map[string]bool) []globalCLIDescriptor {
 	selected := make([]globalCLIDescriptor, 0, len(globalCLIDescriptors))

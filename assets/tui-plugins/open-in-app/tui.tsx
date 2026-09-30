@@ -1,71 +1,132 @@
-/** @jsxImportSource @opentui/solid */
-import { Plugin } from "@opencode/plugin/tui"
-import { createSignal } from "solid-js"
-import { createAppCatalog, launchApp, type App, type AppCatalog } from "./apps"
+import { Plugin } from "@opencode/plugin/tui";
+import { createSignal } from "solid-js";
+import { createAppCatalog, launchApp, type App, type AppCatalog, type LaunchResult } from "./apps.js";
+import { createActivationRegionHandlers } from "./interaction.js";
+import { createApplicationPicker, type FavouriteAppStore } from "./picker.js";
+import { FavouriteAppPreference } from "./favourite.js";
+import { registerOpenFavouriteKeymap } from "./keymap.js";
+import { resolveProjectRoot } from "./project.js";
 
-export function createOpenInAppPlugin(catalogFactory: () => AppCatalog = () => createAppCatalog({ timeoutMs: 1500 })) {
-return Plugin.define({
-  id: "opencode-open-in-app",
-  setup(context) {
-    const catalog = catalogFactory()
-    const [saved, save] = context.storage.store<{ favourite?: string }>("favourite", { initial: {} })
-    const [favourite, setFavourite] = createSignal<App>()
-    let disposed = false
-    void catalog.getDetectedApps().then(apps => {
-      if (!disposed) setFavourite(apps.find(app => app.id === saved.favourite))
-    }).catch(() => {})
-    const project = () => {
-      const route = context.ui.router.current()
-      return (route.type === "session" ? context.data.session.get(route.sessionID)?.location : context.location)?.directory
-        ?? context.data.location.default().directory
-    }
-    const launch = async (app: App) => {
-      const result = await launchApp(app, project(), { timeoutMs: 1500 })
-      if (!result.success) context.ui.toast.show({ variant: "error", message: `Could not open ${app.name}: ${result.failure}` })
-    }
-    const pick = async () => {
-      const apps = await catalog.getDetectedApps()
-      const chosen = await context.ui.dialog.select({
-        title: "Open project in", options: apps.map(app => ({ title: app.name, value: app })),
-      })
-      if (!chosen || disposed) return
-      await save(draft => { draft.favourite = chosen.id })
-      setFavourite(chosen)
-      await launch(chosen)
-    }
-    const activate = async () => {
-      try {
-        const app = favourite()
-        if (app) await launch(app)
-        else await pick()
-      } catch (error) {
-        context.ui.toast.show({ variant: "error", message: error instanceof Error ? error.message : "Could not open application" })
-      }
-    }
-    const Commands = () => {
-      context.keymap.layer(() => ({ mode: "global", commands: [{
-        id: "opencode-open-in-app.open-project-root-with-favourite",
-        title: "Open project in favourite app", bind: "alt+o", palette: true,
-        slash: { name: "open-in-app" }, run: activate,
-      }, {
-        id: "opencode-open-in-app.choose", title: "Choose application for project",
-        palette: true, slash: { name: "open-in-app-choose" },
-        run: () => pick().catch(error => context.ui.toast.show({ variant: "error", message: String(error) })),
-      }] }))
-      return null
-    }
-    const releaseFooter = context.ui.slot({ append: "home.footer.status", render: Commands })
-    const releaseSidebar = context.ui.slot({ prepend: "sidebar.content", render: () => (
-      <box flexDirection="row" height={1}>
-        <Commands />
-        <text fg={context.theme.text.muted} onMouseUp={() => void activate()}>Open in {favourite()?.name ?? "app"} </text>
-        <text fg={context.theme.text.accent} onMouseUp={() => void pick().catch(error => context.ui.toast.show({ variant: "error", message: String(error) }))}>↓</text>
-      </box>
-    ) })
-    return () => { disposed = true; releaseFooter?.(); releaseSidebar?.() }
-  },
-})
-
+export const DEFAULT_PROCESS_TIMEOUT_MS = 1_500;
+export interface OpenInAppTuiDependencies {
+  readonly catalog?: AppCatalog;
+  readonly launch?: (app: App, projectRoot: string) => Promise<LaunchResult>;
+  readonly favouriteStore?: FavouriteAppStore;
 }
 
-export default createOpenInAppPlugin()
+export function createOpenInAppTui(dependencies: OpenInAppTuiDependencies = {}) {
+  return Plugin.define({
+    id: "opencode-open-in-app",
+    setup(context) {
+      const catalog = dependencies.catalog ?? createAppCatalog({ timeoutMs: DEFAULT_PROCESS_TIMEOUT_MS });
+      const [saved, save] = context.storage.store<{ favourite?: string }>("favourite", { initial: {} });
+      const warn = (message: string) => context.ui.toast.show({ variant: "warning", message });
+      const store = dependencies.favouriteStore ?? new FavouriteAppPreference({
+        get: <Value,>(_key: string, fallback?: Value) => (saved.favourite ?? fallback) as Value,
+        set: (_key, value) => { void save(draft => { draft.favourite = value as string }).catch(error => warn(String(error))); },
+      });
+      const [favourite, setFavourite] = createSignal<App>();
+      let disposed = false;
+      const project = () => {
+        const route = context.ui.router.current();
+        const location = route.type === "session" ? context.data.session.get(route.sessionID)?.location : context.location;
+        return resolveProjectRoot({ state: { path: {
+          directory: location?.directory,
+          worktree: context.location?.directory ?? context.data.location.default().directory,
+        } } });
+      };
+      const picker = createApplicationPicker({
+        catalog, store, toast: warn,
+        onFavouriteChanged: app => { if (!disposed) setFavourite(app); },
+        launch: dependencies.launch ?? ((app, root) => launchApp(app, root, { timeoutMs: DEFAULT_PROCESS_TIMEOUT_MS })),
+        dialog: { show(input) {
+          void context.ui.dialog.select({ title: input.title, options: [...input.options] })
+            .then(app => { if (app && !disposed) input.onSelect(app); }).catch(error => warn(String(error)));
+        } },
+      });
+      void resolvePersistedFavourite(catalog, store).then(app => { if (!disposed) setFavourite(app); });
+      const pick = () => { const root = project(); if (root && !disposed) void picker.open(root); };
+      const activate = () => {
+        const root = project(); if (!root || disposed) return;
+        const app = favourite(); if (app) void picker.launch(app, root); else void picker.open(root);
+      };
+      // The always-mounted app slot owns the only keymap layer, so commands exist once on every route.
+      const releaseCommands = context.ui.slot({ append: "app", render: () => {
+        registerOpenFavouriteKeymap(context, activate, pick); return null;
+      } });
+      const releaseSidebar = context.ui.slot({ prepend: "sidebar.content", render: () =>
+        <OpenInAppControl favourite={favourite()} theme={context.theme} activateLabel={activate} activateChevron={pick} /> });
+      return () => { if (disposed) return; disposed = true; releaseSidebar(); releaseCommands(); };
+    },
+  });
+}
+
+function OpenInAppControl(props: {
+  readonly favourite: App | undefined;
+  readonly theme: Plugin.Context["theme"];
+  readonly activateLabel: () => void;
+  readonly activateChevron: () => void;
+}) {
+  const label = createActivationRegionHandlers(props.activateLabel);
+  const chevron = createActivationRegionHandlers(props.activateChevron);
+
+  return (
+    <box height={1} flexDirection="row">
+      <box
+        height={1}
+        focusable
+        onMouseDown={label.onMouseDown}
+        onMouseUp={label.onMouseUp}
+        onKeyDown={label.onKeyDown}
+      >
+        <text
+          height={1}
+          wrapMode="none"
+          truncate
+          selectable={false}
+          fg={props.theme.text.muted}
+        >
+          {`Open in${props.favourite ? ` ${props.favourite.name}` : ""} `}
+        </text>
+      </box>
+      <box
+        height={1}
+        focusable
+        onMouseDown={chevron.onMouseDown}
+        onMouseUp={chevron.onMouseUp}
+        onKeyDown={chevron.onKeyDown}
+      >
+        <text
+          height={1}
+          wrapMode="none"
+          truncate
+          selectable={false}
+          fg={props.theme.text.muted}
+        >
+          ↓
+        </text>
+      </box>
+    </box>
+  );
+}
+
+async function resolvePersistedFavourite(
+  catalog: AppCatalog,
+  store: FavouriteAppStore,
+): Promise<App | undefined> {
+  let detectedApps: readonly App[];
+  try {
+    detectedApps = await catalog.getDetectedApps();
+  } catch {
+    return undefined;
+  }
+
+  try {
+    return store.get(detectedApps);
+  } catch {
+    return undefined;
+  }
+}
+
+
+export default createOpenInAppTui();
