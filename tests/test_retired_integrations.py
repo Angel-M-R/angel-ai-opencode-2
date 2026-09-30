@@ -145,6 +145,17 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual(json.loads((self.root / 'package.json').read_text())['patchedDependencies'],
                          {'opencode-sdd-engram-manage@1': 'node_modules/custom/old.patch'})
 
+    def test_patch_inside_dependency_cache_backs_up_only_the_edited_artifact(self):
+        self.write('node_modules/custom/old.patch', 'patch bytes')
+        self.write('node_modules/custom/index.js', 'sibling file')
+        self.write('node_modules/unrelated/index.js', 'unrelated cache')
+        self.write('package.json', {'patchedDependencies': {'opencode-sdd-engram-manage@1': 'node_modules/custom/old.patch'}})
+        backup = retire.apply(self.root, retire.plan(self.root), self.backups)
+        self.assertEqual((backup / 'config/node_modules/custom/old.patch').read_text(), 'patch bytes')
+        self.assertFalse((backup / 'config/node_modules/custom/index.js').exists())
+        self.assertFalse((backup / 'config/node_modules/unrelated').exists())
+        self.assertEqual((self.root / 'node_modules/unrelated/index.js').read_text(), 'unrelated cache')
+
     def test_native_descriptors_preserve_options(self):
         kept = {'package': './tui-plugins/open-in-app', 'options': {'favorite': 'code'}}
         self.write('cli.json', {'plugins': [{'package': 'opencode-sdd-engram-manage', 'options': {}}, kept]})

@@ -1,6 +1,6 @@
 # Retire the OpenCode 1 integrations
 
-This cleanup removes Engram, SDD profiles, OpenSpec, Notion, Supabase, Railway
+This cleanup removes Engram, SDD profiles, OpenSpec, Notion, Supabase, Railway,
 CodeGraph and cmux. It builds on the OpenCode 2 migration already merged into `main`.
 
 The installer no longer ships their plugins, agents, CLI installers or workflow
