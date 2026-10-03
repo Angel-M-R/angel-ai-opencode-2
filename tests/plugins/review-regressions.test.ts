@@ -25,12 +25,12 @@ test("monitor preserves graphemes, explicit totals and delimited agent tags", ()
 
 test("UI unload releases every registered slot", async () => {
   for (const plugin of [angel]) {
-    const slots: any[] = [], released: any[] = [], commands: any[] = []
+    const slots: any[] = [], released: any[] = []
     const context = {
       app: { angelHomeLogo: true },
       storage: { store: (_: any, options: any) => [options.initial, async () => {}] },
       ui: { slot: (slot: any) => { slots.push(slot); return () => released.push(slot) } },
-      keymap: { layer: (factory: any) => { commands.push(...factory().commands) } },
+      keymap: { layer: () => {} },
     } as unknown as Plugin.Context
     const cleanup = await plugin.setup(context)
     const commandSlot = slots.find(slot => slot.append === "home.footer.status")

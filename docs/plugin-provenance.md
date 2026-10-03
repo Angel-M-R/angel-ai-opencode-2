@@ -3,7 +3,8 @@
 Vendored plugins retain their MIT licenses next to the source. These copies are pinned snapshots; they do not automatically track upstream branches.
 Open in App is not vendored: the installer adds the npm package
 [`opencode-open-in-app`](https://www.npmjs.com/package/opencode-open-in-app)
-to `cli.json`, and OpenCode installs it.
+to `cli.json` at the exact version `opencode-open-in-app@1.0.0`, and OpenCode
+installs it.
 
 | Installed component | Source and revision | Local adaptation |
 |---|---|---|

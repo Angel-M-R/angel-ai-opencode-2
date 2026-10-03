@@ -58,7 +58,7 @@ func TestV2MigrationPreservesUserConfigAndReconcilesPackages(t *testing.T) {
 	if !reflect.DeepEqual(migrated["theme"], cli["theme"]) || !reflect.DeepEqual(migrated["keybinds"], cli["keybinds"]) {
 		t.Fatal("lost UI preferences")
 	}
-	want := []any{"foreign", filepath.Join(target, "tui-plugins", "angel-logo"), "opencode-open-in-app", filepath.Join(target, "tui-plugins", "subagent-statusline")}
+	want := []any{"foreign", filepath.Join(target, "tui-plugins", "angel-logo"), "opencode-open-in-app@1.0.0", filepath.Join(target, "tui-plugins", "subagent-statusline")}
 	if !reflect.DeepEqual(migrated["plugins"], want) {
 		t.Fatalf("plugins = %#v", migrated["plugins"])
 	}
@@ -105,7 +105,7 @@ func TestV2MigrationReconcilesDescriptorsAndPreservesOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []any{map[string]any{"package": "opencode-open-in-app", "options": map[string]any{"favourite": "editor"}}, map[string]any{"package": "foreign", "options": map[string]any{"keep": true}}}
+	want := []any{map[string]any{"package": "opencode-open-in-app@1.0.0", "options": map[string]any{"favourite": "editor"}}, map[string]any{"package": "foreign", "options": map[string]any{"keep": true}}}
 	if !reflect.DeepEqual(config["plugins"], want) {
 		t.Fatalf("plugins = %#v", config["plugins"])
 	}

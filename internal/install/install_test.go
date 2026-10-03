@@ -334,7 +334,7 @@ export default {}`)
 	}
 	wantMigrated := []string{
 		"unrelated-before",
-		"opencode-open-in-app",
+		"opencode-open-in-app@1.0.0",
 		unrecognized,
 		commentDecoy,
 		stringDecoy,
@@ -407,7 +407,7 @@ func TestApplyAppendsSelectedPublishedTUIPluginWhenAbsent(t *testing.T) {
 	if err := json.Unmarshal(readFile(t, tuiPath), &config); err != nil {
 		t.Fatal(err)
 	}
-	want := append(append([]string(nil), unrelatedPlugins...), "opencode-open-in-app")
+	want := append(append([]string(nil), unrelatedPlugins...), "opencode-open-in-app@1.0.0")
 	if !reflect.DeepEqual(config.Plugin, want) {
 		t.Fatalf("TUI plugins = %v, want %v", config.Plugin, want)
 	}
@@ -452,7 +452,7 @@ export default { id: "opencode-open-in-app" };
 	if err := json.Unmarshal(readFile(t, tuiPath), &config); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"opencode-open-in-app"}
+	want := []string{"opencode-open-in-app@1.0.0"}
 	if !reflect.DeepEqual(config.Plugin, want) {
 		t.Fatalf("TUI plugins = %v, want %v", config.Plugin, want)
 	}
