@@ -120,7 +120,7 @@ The last wizard step offers standalone integrations and UI toggles.
   as the TUI theme (`cli.json`).
 - **[Subagent statusline](https://github.com/Joaquinvesapa/sub-agent-statusline)**:
   vendored v2 plugin showing worker activity in the sidebar.
-- **[Open in App](https://github.com/Angel-M-R/opencode-open-in-app)**: local v2
+- **[Open in App](https://github.com/Angel-M-R/opencode-open-in-app)**: v2 npm
   plugin that opens files and resources in their native applications.
 
 ## Usage from the repository

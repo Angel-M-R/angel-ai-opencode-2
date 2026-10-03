@@ -50,8 +50,12 @@ var ExtraOptions = []ExtraOption{
 	},
 }
 
-var uiPlugins = []struct{ option, identity, directory string }{
-	{"angel-logo", "angel-logo", "angel-logo"},
-	{"subagent-statusline", "opencode-subagent-statusline", "subagent-statusline"},
-	{openInAppOptionKey, "opencode-open-in-app", "open-in-app"},
+// uiPlugins with a package are installed from npm at a pinned version; the
+// rest are copied from assets/tui-plugins/<directory>. The directory also
+// identifies an earlier local copy so reinstalling replaces it with the
+// package entry.
+var uiPlugins = []struct{ option, identity, directory, npmPackage string }{
+	{"angel-logo", "angel-logo", "angel-logo", ""},
+	{"subagent-statusline", "opencode-subagent-statusline", "subagent-statusline", ""},
+	{openInAppOptionKey, "opencode-open-in-app", "open-in-app", "opencode-open-in-app@1.0.0"},
 }

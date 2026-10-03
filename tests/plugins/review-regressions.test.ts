@@ -4,11 +4,7 @@ import { RGBA } from "@opentui/core"
 import { labelFor, resolveTokensTotal } from "../../assets/tui-plugins/subagent-statusline/format"
 import { takeColumns, textColumns, truncateToColumns } from "../../assets/tui-plugins/subagent-statusline/text-width"
 import monitor from "../../assets/tui-plugins/subagent-statusline/tui"
-import { createOpenInAppTui } from "../../assets/tui-plugins/open-in-app/tui"
-const open = createOpenInAppTui({ catalog: { getDetectedApps: async () => [] } })
 import angel from "../../assets/tui-plugins/angel-logo/tui"
-import { defaultProcessExecutor } from "../../assets/tui-plugins/open-in-app/process"
-import { launchApp } from "../../assets/tui-plugins/open-in-app/apps"
 import type { Plugin } from "@opencode/plugin/tui"
 
 test("monitor preserves graphemes, explicit totals and delimited agent tags", () => {
@@ -27,30 +23,19 @@ test("monitor preserves graphemes, explicit totals and delimited agent tags", ()
   expect(labelFor({ id: "s", title: "API (explore)", agent: "explore" })).toBe("API (explore)")
 })
 
-test("Open in App reports output overflow and genuine Explorer exits", async () => {
-  const result = await defaultProcessExecutor({ command: process.execPath, args: ["-e", "process.stdout.write('x'.repeat(2*1024*1024))"], cwd: process.cwd(), timeoutMs: 2000 })
-  expect(result.failure?.kind).toBe("output")
-  const app = { id: "explorer", name: "Explorer", command: "explorer", fixedArgs: [] } as const
-  for (const code of [1, 2]) {
-    const result = await launchApp(app, process.cwd(), { timeoutMs: 10, executor: async () => ({ stdout: "", stderr: "", failure: { kind: "exit", exitCode: code } }) })
-    expect(result.success).toBe(code === 1)
-  }
-})
-
-test("UI unload releases every registered slot and picker is keyboard accessible", async () => {
-  for (const plugin of [open, angel]) {
-    const slots: any[] = [], released: any[] = [], commands: any[] = []
+test("UI unload releases every registered slot", async () => {
+  for (const plugin of [angel]) {
+    const slots: any[] = [], released: any[] = []
     const context = {
       app: { angelHomeLogo: true },
       storage: { store: (_: any, options: any) => [options.initial, async () => {}] },
       ui: { slot: (slot: any) => { slots.push(slot); return () => released.push(slot) } },
-      keymap: { layer: (factory: any) => { commands.push(...factory().commands) } },
+      keymap: { layer: () => {} },
     } as unknown as Plugin.Context
     const cleanup = await plugin.setup(context)
-    const commandSlot = slots.find(slot => slot.append === (plugin === open ? "app" : "home.footer.status"))
+    const commandSlot = slots.find(slot => slot.append === "home.footer.status")
     const rendered = await testRender(() => commandSlot.render({}), { width: 80, height: 20 })
     await rendered.renderOnce()
-    if (plugin === open) expect(commands.some(command => command.slash?.name === "open-in-app-choose")).toBe(true)
     rendered.renderer.destroy()
     await cleanup?.()
     expect(released).toHaveLength(slots.length)

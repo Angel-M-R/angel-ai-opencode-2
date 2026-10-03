@@ -98,7 +98,7 @@ cmux is also removed from the extras catalog, installer and hook assets. Existin
 `cmux-session.js` and `cmux-feed.js` hooks and their config references are removed
 by the same backed-up cleanup command.
 
-Open in App remains installed as a pinned snapshot of its independent v2 port;
+Open in App remains installed, now from its npm package;
 see [plugin provenance](plugin-provenance.md). Claude authentication remains
 because OpenCode 2.0.18 natively offers Anthropic API-key authentication, while
 the installed Claude Max account uses the OAuth plugin.
